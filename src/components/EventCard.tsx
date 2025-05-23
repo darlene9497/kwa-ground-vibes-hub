@@ -1,7 +1,20 @@
 
-import { Calendar, MapPin, Users, Clock, DollarSign } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+
+interface EventCardProps {
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  location: string;
+  category: string;
+  image?: string;
+  attendeeCount: number;
+  price?: string;
+  tags: string[];
+}
 
 const EventCard = ({ 
   title, 
@@ -14,9 +27,9 @@ const EventCard = ({
   attendeeCount, 
   price, 
   tags 
-}) => {
-  const getCategoryColor = (category) => {
-    const colors = {
+}: EventCardProps) => {
+  const getCategoryColor = (category: string) => {
+    const colors: { [key: string]: string } = {
       'Concerts': 'bg-vibrant-purple text-white',
       'Women Only': 'bg-vibrant-pink text-white',
       'Bible Study': 'bg-vibrant-blue text-white',
@@ -74,8 +87,8 @@ const EventCard = ({
             <span className="line-clamp-1">{location}</span>
           </div>
           <div className="flex items-center text-gray-500 text-sm">
-            <DollarSign className="w-4 h-4 mr-2 text-vibrant-purple" />
-            <span>{price === 'Free' ? 'Free Entry' : `KSh ${price}`}</span>
+            <Users className="w-4 h-4 mr-2 text-vibrant-purple" />
+            <span>{attendeeCount} attending</span>
           </div>
         </div>
         

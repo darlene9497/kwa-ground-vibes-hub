@@ -3,7 +3,12 @@ import { Sparkles, MapPin } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
-const AIRecommendations = ({ userLocation = "Nairobi", userAge = 25 }) => {
+interface AIRecommendationsProps {
+  userLocation?: string;
+  userAge?: number;
+}
+
+const AIRecommendations = ({ userLocation = "Nairobi", userAge = 25 }: AIRecommendationsProps) => {
   const recommendations = [
     {
       title: "Weekend Vibes: Rooftop Concert",
