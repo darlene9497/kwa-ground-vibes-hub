@@ -1,5 +1,5 @@
 
-import { Calendar, MapPin, Users, Clock } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, DollarSign } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
@@ -89,6 +89,10 @@ const EventCard = ({
           <div className="flex items-center text-gray-500 text-sm">
             <Users className="w-4 h-4 mr-2 text-vibrant-purple" />
             <span>{attendeeCount} attending</span>
+          </div>
+          <div className="flex items-center text-gray-500 text-sm">
+            <DollarSign className="w-4 h-4 mr-2 text-vibrant-purple" />
+            <span>{price === 'Free' ? 'Free Entry' : `KSh ${price}`}</span>
           </div>
         </div>
         
