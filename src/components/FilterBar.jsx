@@ -2,12 +2,7 @@
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-interface FilterBarProps {
-  activeFilters: string[];
-  onFilterToggle: (filter: string) => void;
-}
-
-const FilterBar = ({ activeFilters, onFilterToggle }: FilterBarProps) => {
+const FilterBar = ({ activeFilters, onFilterToggle }) => {
   const filters = [
     { name: 'All Events', color: 'bg-gray-500' },
     { name: 'Women Only', color: 'bg-vibrant-pink' },

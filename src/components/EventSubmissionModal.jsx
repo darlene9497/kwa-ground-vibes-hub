@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Plus, Calendar, MapPin, Users, Tag } from 'lucide-react';
+import { Plus, Calendar, MapPin, Tag } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -48,7 +48,7 @@ const EventSubmissionModal = () => {
     'Arts & Culture'
   ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 

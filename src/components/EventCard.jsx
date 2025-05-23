@@ -3,19 +3,6 @@ import { Calendar, MapPin, Users, Clock } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
-interface EventCardProps {
-  title: string;
-  description: string;
-  date: string;
-  time: string;
-  location: string;
-  category: string;
-  image?: string;
-  attendeeCount: number;
-  price?: string;
-  tags: string[];
-}
-
 const EventCard = ({ 
   title, 
   description, 
@@ -27,9 +14,9 @@ const EventCard = ({
   attendeeCount, 
   price, 
   tags 
-}: EventCardProps) => {
-  const getCategoryColor = (category: string) => {
-    const colors: { [key: string]: string } = {
+}) => {
+  const getCategoryColor = (category) => {
+    const colors = {
       'Concerts': 'bg-vibrant-purple text-white',
       'Women Only': 'bg-vibrant-pink text-white',
       'Bible Study': 'bg-vibrant-blue text-white',

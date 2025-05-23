@@ -9,9 +9,9 @@ import AIRecommendations from '@/components/AIRecommendations';
 import EventSubmissionModal from '@/components/EventSubmissionModal';
 
 const Index = () => {
-  const [activeFilters, setActiveFilters] = useState<string[]>(['All Events']);
+  const [activeFilters, setActiveFilters] = useState(['All Events']);
   const [searchQuery, setSearchQuery] = useState('');
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState([]);
 
   // Mock event data
   const mockEvents = [
@@ -95,7 +95,7 @@ const Index = () => {
     setEvents(mockEvents);
   }, []);
 
-  const handleFilterToggle = (filter: string) => {
+  const handleFilterToggle = (filter) => {
     if (filter === 'All Events') {
       setActiveFilters(['All Events']);
     } else {
