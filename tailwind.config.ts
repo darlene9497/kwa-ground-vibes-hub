@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -63,21 +62,22 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// KwaGround brand colors inspired by Kenyan culture
-				kenya: {
-					red: '#DC2626',
-					green: '#16A34A',
-					black: '#0F172A',
-					gold: '#F59E0B',
+				retro: {
+					'red-orange': '#e94e45',
+					'warm-yellow': '#f2d055',
+					'deep-teal': '#00495e',
+					'mustard': '#e1aa38',
+					'bright-blue': '#0576a0',
+					'cream': '#f0e3c1',
+					'navy': '#03223a',
+					'white': '#ffffff',
+					'deep-red': '#cb3a2b',
+					'cool-teal': '#165d6b',
+					'burnt-orange': '#cc5500',
+					'maroon': '#9b2226',
+					'deep-purple': '#4a274f',
+					'deep-blue': '#002642',
 				},
-				vibrant: {
-					orange: '#EA580C',
-					purple: '#7C3AED',
-					pink: '#EC4899',
-					blue: '#0EA5E9',
-					emerald: '#10B981',
-					yellow: '#EAB308',
-				}
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -130,5 +130,5 @@ export default {
 			}
 		}
 	},
-	plugins: [require("tailwindcss-animate")],
+	plugins: [require('tailwind-scrollbar-hide')],
 } satisfies Config;
