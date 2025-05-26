@@ -151,10 +151,31 @@ const Index = () => {
     return matchesFilter && matchesSearch;
   });
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+  
+  const formatTime = (timeString: string) => {
+    const [hours, minutes] = timeString.split(':');
+    const date = new Date();
+    date.setHours(parseInt(hours), parseInt(minutes));
+    
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    }).toLowerCase();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-retro-cream via-retro-warm-yellow/20 to-retro-deep-teal/10">
       {/* Header */}
-      <header className="bg-retro-warm-yellow border-b-4 border-retro-burnt-orange px-2 sm:px-4 py-2">
+      <header className="bg-retro-cream border-b-4 border-black px-2 sm:px-4 py-2">
         <div className="max-w-7xl mx-auto w-full">
           {/* Mobile layout */}
           <div className="flex flex-col sm:hidden w-full">
@@ -230,7 +251,7 @@ const Index = () => {
                     placeholder="Search events, locations, or vibes..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 bg-retro-cream border-2 border-retro-mustard focus:border-retro-burnt-orange focus:bg-white transition-colors rounded-lg text-retro-navy text-base"
+                    className="pl-10 bg-retro-cream border-2 border-black  focus:bg-white transition-colors rounded-lg text-retro-navy text-base"
                   />
                 </div>
               </div>
@@ -255,7 +276,7 @@ const Index = () => {
                   placeholder="Search events, locations, or vibes..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-retro-cream border-2 border-retro-burnt-orange focus:border-retro-bright-blue focus:bg-white transition-colors rounded-lg text-retro-navy text-base"
+                  className="pl-10 bg-retro-cream border-2 border-black focus:border-black focus:bg-white transition-colors rounded-lg text-black text-base"
                 />
               </div>
             </div>
@@ -324,7 +345,7 @@ const Index = () => {
       <FilterBar activeFilters={activeFilters} onFilterToggle={handleFilterToggle} />
 
       {/* Main Content */}
-      <main className="max-w-md mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-5xl mx-auto px-3 py-6 space-y-6">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-retro-navy">
@@ -344,124 +365,138 @@ const Index = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-1 justify-center">
-              {filteredEvents.map((event) => (
-                <Card
+            <div className="px-4">
+                <div className="grid gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2">
+                {filteredEvents.map((event) => (
+                  <Card
                   key={event.id}
                   className="
-                    relative bg-retro-cream border-2 border-black
-                    p-0 overflow-visible transition-all duration-200 ease-in-out
-                    hover:-translate-y-2 rounded-none
-                    max-w-sm w-full
+                    relative bg-retro-cream border-4 border-black
+                    p-0 overflow-visible transition-all duration-300 ease-out
+                    hover:-translate-y-3 hover:rotate-1 rounded-none
+                    w-full sm:max-w-lg md:max-w-xl lg:max-w-md shadow-2xl
                     before:content-[''] before:absolute before:top-2 before:left-2 before:-right-2 before:-bottom-2
-                    before:bg-retro-mustard/60 before:z-[-1] before:border before:border-black/60 before:rounded-none
-                    after:content-[''] after:absolute after:top-4 after:left-4 after:-right-4 after:-bottom-4
-                    after:bg-retro-deep-red/60 after:z-[-2] after:border after:border-black/60 after:rounded-none
+                    before:bg-retro-burnt-orange/80 before:z-[-1] before:border-4 before:border-black before:rounded-none
+                    after:content-[''] after:absolute after:top-4 after:left-4 before:-right-4 before:-bottom-4
+                    after:bg-retro-deep-red/70 after:z-[-2] after:border-4 after:border-black after:rounded-none
+                    hover:before:translate-x-1 hover:before:translate-y-1
+                    hover:after:translate-x-2 hover:after:translate-y-2
                   "
                 >
-                  {/* Card Image or Logo */}
-                  <div className="relative h-60 overflow-hidden bg-retro-mustard flex items-center justify-center rounded-none">
-                    {event.image ? (
-                      <img src={event.image} alt={event.title} className="object-cover w-full h-full" />
-                    ) : (
-                      <img
-                        src="/assets/kwa-ground-logo.png"
-                        alt="KwaGround Logo"
-                        className="opacity-30 w-40 h-40"
-                        style={{ filter: 'grayscale(1)' }}
-                      />
-                    )}
-                    {/* Category Badge */}
-                    <Badge className="
-                      absolute top-2 left-2
-                      bg-retro-red-orange text-retro-cream
-                      font-retro text-xs px-2 py-0.5
-                      border-2 border-black
-                      -rotate-2
-                      pointer-events-none
-                    ">
-                      {event.category}
-                    </Badge>
-                    {/* Price Badge */}
-                    {event.price && (
+                
+                    {/* Card Image or Logo */}
+                    <div className="relative h-60 overflow-hidden bg-retro-mustard flex items-center justify-center border-b-4 border-black">
+                      {event.image ? (
+                        <img src={event.image} alt={event.title} className="object-cover w-full h-full" />
+                      ) : (
+                        <img
+                          src="/assets/kwa-ground-logo.png"
+                          alt="KwaGround Logo"
+                          className="opacity-30 w-40 h-40"
+                          style={{ filter: 'grayscale(1)' }}
+                        />
+                      )}
+                      {/* Category Badge */}
                       <Badge className="
-                        absolute top-2 right-2
-                        bg-retro-mustard text-retro-navy
-                        font-bold text-xs px-2 py-0.5
-                        border-2 border-black
-                        rotate-2
+                        absolute top-3 left-3
+                        bg-retro-red-orange text-retro-cream
+                        font-bold text-xs px-3 py-1
+                        border-3 border-black
+                        -rotate-3 shadow-lg
                         pointer-events-none
+                        transform hover:rotate-0 transition-transform duration-200
                       ">
-                        {event.price.trim().toLowerCase() === 'free' ? 'FREE' : event.price}
+                        {event.category}
                       </Badge>
-                    )}
-                  </div>
-
-                  {/* Card Content */}
-                  <CardContent className="
-                    bg-retro-cream border-t-2 border-black
-                    p-6 space-y-4 rounded-none
-                  ">
-                    {/* Title */}
-                    <h3 className="
-                      font-retro text-lg text-retro-navy
-                      font-bold uppercase tracking-wider
-                    ">
-                      {event.title}
-                    </h3>
-                    {/* Description */}
-                    <p className="text-retro-deep-teal text-xs font-retro">
-                      {event.description.length > 100 ? event.description.slice(0, 100) + '...' : event.description}
-                    </p>
-                    {/* Info Rows */}
-                    <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <div className="flex items-center gap-1 text-retro-cool-teal text-xs">
-                          <Calendar className="w-3 h-3 text-retro-bright-blue" />
-                          <span className="font-semibold">{event.date}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-retro-cool-teal text-xs">
-                          <Clock className="w-3 h-3 text-retro-deep-teal" />
-                          <span className="font-semibold">{event.time}</span>
-                        </div>
-                      </div>
-                      <div className="flex justify-between">
-                        <div className="flex items-center gap-1 text-retro-cool-teal text-xs">
-                          <MapPin className="w-3 h-3 text-retro-red-orange" />
-                          <span>{event.location}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-retro-cool-teal text-xs">
-                          <DollarSign className="w-3 h-3 text-retro-mustard" />
-                          <span>
-                            {event.price?.trim().toLowerCase() === 'free'
-                              ? 'Free Entry'
-                              : event.price?.toLowerCase().includes('ksh')
-                                ? event.price
-                                : `KSh ${event.price}`}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-2">
-                      {event.tags?.slice(0, 3).map((tag, index) => (
-                        <Badge
-                          key={index}
-                          variant="outline"
-                          className="
-                            text-xs border-retro-mustard text-retro-deep-teal
-                            bg-retro-cream font-retro px-2 py-0.5 rounded-none
-                            pointer-events-none
-                          "
-                        >
-                          {tag}
+                      {/* Price Badge */}
+                      {event.price && (
+                        <Badge className="
+                          absolute top-3 right-3
+                          bg-retro-warm-yellow text-black
+                          font-bold text-xs px-3 py-1
+                          border-3 border-black
+                          rotate-3 shadow-lg
+                          pointer-events-none
+                          transform hover:rotate-0 transition-transform duration-200
+                        ">
+                          {event.price.trim().toLowerCase() === 'free' ? 'FREE' : event.price}
                         </Badge>
-                      ))}
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+
+                    {/* Card Content */}
+                    <CardContent className="
+                      bg-retro-cream
+                      px-5 py-3 space-y-4 rounded-none
+                    ">
+                      {/* Title */}
+                      <h3 className="
+                        font-bold text-xl text-black
+                        uppercase tracking-wider
+                        transform hover:scale-105 transition-transform duration-200
+                      ">
+                        {event.title}
+                      </h3>
+                      
+                      {/* Description */}
+                      <p className="text-black text-sm leading-relaxed font-medium">
+                        {event.description.length > 100 ? event.description.slice(0, 100) + '...' : event.description}
+                      </p>
+                      
+                      {/* Info Rows */}
+                      <div className="space-y-3 border-t-2 border-black pt-4">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2 text-black text-sm font-bold">
+                            <Calendar className="w-4 h-4 text-retro-bright-blue" />
+                            <span>{formatDate(event.date)}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-black text-sm font-bold">
+                            <Clock className="w-4 h-4 text-retro-deep-teal" />
+                            <span>{formatTime(event.time)}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2 text-black text-sm font-bold">
+                            <MapPin className="w-4 h-4 text-retro-red-orange" />
+                            <span className="truncate max-w-40">{event.location}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-black text-sm font-bold">
+                            <DollarSign className="w-4 h-4 text-retro-mustard" />
+                            <span>
+                              {event.price?.trim().toLowerCase() === 'free'
+                                ? 'Free'
+                                : event.price?.toLowerCase().includes('ksh')
+                                  ? event.price
+                                  : `KSh ${event.price}`}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Tags */}
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        {event.tags?.slice(0, 3).map((tag, index) => (
+                          <Badge
+                            key={index}
+                            className="
+                              text-xs border-2 border-retro-burnt-orange text-black
+                              bg-retro-warm-yellow font-bold px-3 py-1 rounded-none
+                              pointer-events-none shadow-sm
+                              transform hover:scale-105 transition-all duration-200
+                              hover:bg-retro-mustard
+                            "
+                          >
+                            #{tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
+            
           )}
         </div>
 

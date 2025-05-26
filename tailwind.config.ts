@@ -7,7 +7,7 @@ export default {
 		"./components/**/*.{ts,tsx}",
 		"./app/**/*.{ts,tsx}",
 		"./src/**/*.{ts,tsx}",
-	],
+	],  
 	prefix: "",
 	theme: {
 		container: {
@@ -16,6 +16,10 @@ export default {
 			screens: {
 				'2xl': '1400px'
 			}
+		},
+		fontFamily: {
+			heading: ['"Rubik Mono One"', 'sans-serif'],
+			body: ['"Quicksand"', 'sans-serif'],
 		},
 		extend: {
 			colors: {
@@ -63,16 +67,16 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				retro: {
-					'red-orange': '#e94e45',
-					'warm-yellow': '#f2d055',
+					'red-orange': '#9a2907',
+					'warm-yellow': '#ffaf00',
 					'deep-teal': '#00495e',
 					'mustard': '#e1aa38',
 					'bright-blue': '#0576a0',
-					'cream': '#f0e3c1',
+					'cream': '#efddc0',
 					'navy': '#03223a',
 					'white': '#ffffff',
 					'deep-red': '#cb3a2b',
-					'cool-teal': '#165d6b',
+					'cool-teal': '#3c7f72',
 					'burnt-orange': '#cc5500',
 					'maroon': '#9b2226',
 					'deep-purple': '#4a274f',
