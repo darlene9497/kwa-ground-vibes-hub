@@ -28,7 +28,7 @@ This project is ideal for local communities, organizations, or groups looking to
 
 1. **Clone the repository:**
    ```sh
-   git clone [<YOUR_GIT_URL>](https://github.com/darlene9497/kwa-ground-vibes-hub.git)
+   git clone https://github.com/darlene9497/kwa-ground-vibes-hub.git
    cd kwa-ground-vibes-hub
    ```
 2. **Install dependencies:**
