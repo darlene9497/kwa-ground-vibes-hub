@@ -8,26 +8,40 @@ import EventSubmissionModal from '@/components/EventSubmissionModal';
 import { supabase } from '@/lib/supabaseClient';
 import { Badge } from '@/components/ui/badge';
 
+interface User {
+  id: string;
+  email?: string;
+  user_metadata?: {
+    name?: string;
+  };
+  profile?: {
+    name?: string;
+    full_name?: string;
+  };
+}
+
+interface Event {
+  id: number;
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  location: string;
+  category: string;
+  status: string;
+  image?: string;
+  price?: string;
+  tags?: string[];
+  user_id?: string;
+  created_at?: string;
+}
+
 const Index = () => {
   const [activeFilters, setActiveFilters] = useState<string[]>(['All Events']);
   const [searchQuery, setSearchQuery] = useState('');
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [userEvents, setUserEvents] = useState([]);
-
-  interface Event {
-    id: number;
-    title: string;
-    description: string;
-    date: string;
-    time: string;
-    location: string;
-    category: string;
-    status: string;
-    image?: string;
-    price?: string;
-    tags?: string[];
-  }
+  const [userEvents, setUserEvents] = useState<Event[]>([]);
 
   const [events, setEvents] = useState<Event[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -56,17 +70,36 @@ const Index = () => {
         if (profileError) {
           console.error('Error fetching profile:', profileError);
         } else if (profileData) {
-          setUser((prevUser: any) => ({
-            ...prevUser,
+          setUser((prevUser: User | null) => ({
+            ...prevUser!,
             profile: profileData,
           }));
         }
 
-        const { data: myEvents } = await supabase
+        const { data: myEvents, error: eventsError } = await supabase
           .from('events')
           .select('*')
           .eq('user_id', user.id);
-        setUserEvents(myEvents || []);
+
+        if (eventsError) {
+          console.error('Error fetching user events:', eventsError);
+        } else {
+          const validatedEvents = (myEvents || []).map(event => ({
+            ...event,
+            id: Number(event.id),
+            title: event.title || '',
+            description: event.description || '',
+            date: event.date || '',
+            time: event.time || '',
+            location: event.location || '',
+            category: event.category || '',
+            status: event.status || '',
+            tags: event.tags || [],
+            user_id: event.user_id || '',
+            created_at: event.created_at || ''
+          })) as unknown as Event[];
+          setUserEvents(validatedEvents);
+        }
       }
     };
 
@@ -81,6 +114,7 @@ const Index = () => {
       } else {
         const validatedEvents = data.map(event => ({
           ...event,
+          id: Number(event.id),
           title: event.title || '',
           description: event.description || '',
           date: event.date || '',
@@ -88,7 +122,7 @@ const Index = () => {
           location: event.location || '',
           category: event.category || '',
           tags: event.tags || []
-        }));
+        })) as Event[];
         setEvents(validatedEvents);
       }
     };
@@ -206,12 +240,13 @@ const Index = () => {
                     {profileMenuOpen && (
                       <div className="absolute right-0 top-full mt-2 w-72 bg-retro-navy shadow-lg rounded-lg border-2 border-retro-warm-yellow p-4 z-50 max-h-96 overflow-auto">
                         <h3 className="text-sm font-semibold mb-2 text-retro-cream">Your Events</h3>
-                        {userEvents.length > 0 ? (
+                        {userEvents && userEvents.length > 0 ? (
                           <ul className="space-y-2 text-sm">
                             {userEvents.map((event: Event) => (
                               <li key={event.id} className="border-b border-retro-cool-teal pb-2">
                                 <p className="font-medium text-retro-warm-yellow">{event.title}</p>
                                 <p className="text-xs text-retro-cream">Status: {event.status}</p>
+                                <p className="text-xs text-retro-cream">Date: {formatDate(event.date)}</p>
                               </li>
                             ))}
                           </ul>
@@ -301,12 +336,13 @@ const Index = () => {
                   {profileMenuOpen && (
                     <div className="absolute right-0 top-full mt-2 w-72 bg-retro-navy shadow-lg rounded-lg border-2 border-retro-warm-yellow p-4 z-50 max-h-96 overflow-auto">
                       <h3 className="text-sm font-semibold mb-2 text-retro-cream">Your Events</h3>
-                      {userEvents.length > 0 ? (
+                      {userEvents && userEvents.length > 0 ? (
                         <ul className="space-y-2 text-sm">
                           {userEvents.map((event: Event) => (
                             <li key={event.id} className="border-b border-retro-cool-teal pb-2">
                               <p className="font-medium text-retro-warm-yellow">{event.title}</p>
                               <p className="text-xs text-retro-cream">Status: {event.status}</p>
+                              <p className="text-xs text-retro-cream">Date: {formatDate(event.date)}</p>
                             </li>
                           ))}
                         </ul>
@@ -439,7 +475,7 @@ const Index = () => {
                       </h3>
                       
                       {/* Description */}
-                      <p className="text-black text-sm leading-relaxed font-medium">
+                      <p className="text-black text-sm leading-relaxed font-medium break-words max-w-full" style={{wordBreak: 'break-word', overflowWrap: 'break-word'}}>
                         {event.description.length > 100 ? event.description.slice(0, 100) + '...' : event.description}
                       </p>
                       

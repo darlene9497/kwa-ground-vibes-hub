@@ -1,28 +1,13 @@
-import { useState } from 'react';
-import { Plus, Calendar, MapPin, Users, Tag } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from '@/components/ui/select';
+import { useState, useEffect } from 'react';
+import { Plus, Calendar, MapPin, Users, Tag, Camera, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabaseClient';
-
-const categories = [
-  'Concerts',
-  'Women Only',
-  'Bible Study',
-  'Sip & Paint',
-  'Tech Meetup',
-  'Fitness',
-  'Food & Drinks',
-  'Arts & Culture'
-];
 
 const EventSubmissionModal = ({ onEventAdded }: { onEventAdded?: () => void }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     title: '',
@@ -36,29 +21,107 @@ const EventSubmissionModal = ({ onEventAdded }: { onEventAdded?: () => void }) =
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
 
+  const DESCRIPTION_LIMIT = 300;
+  const descriptionLength = formData.description.length;
+  const descriptionRemaining = DESCRIPTION_LIMIT - descriptionLength;
+
   const rawTags = formData.tags || "";
   const tagArray = rawTags
     .split(",")
     .map(tag => tag.trim().toLowerCase())
     .filter(tag => tag.length > 0);
 
-  const handleSubmitWithAdminApproval = async (e: React.FormEvent) => {
+  // Fetch categories from Supabase
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setLoadingCategories(true);
+      try {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('name')
+          .order('name');
+
+        if (error) {
+          console.error('Error fetching categories:', error);
+          // Fallback categories if fetch fails
+          setCategories([
+            'Concerts',
+            'Women Only',
+            'Bible Study',
+            'Sip & Paint',
+            'Tech Meetup',
+            'Fitness',
+            'Food & Drinks',
+            'Arts & Culture'
+          ]);
+        } else {
+          setCategories(data.map(cat => cat.name));
+        }
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+        // Fallback categories
+        setCategories([
+          'Concerts',
+          'Women Only',
+          'Bible Study',
+          'Sip & Paint',
+          'Tech Meetup',
+          'Fitness',
+          'Food & Drinks',
+          'Arts & Culture'
+        ]);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  // Function to send email notifications using Supabase Edge Functions
+  const sendEmailNotifications = async (eventData: any, userEmail: string) => {
+    try {
+      // Send notification to admin about new event submission using Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('send-notification-email', {
+        body: {
+          type: 'new_event_submission',
+          to: 'nyamburadarlene6974@gmail.com',
+          eventData: eventData,
+          userEmail: userEmail
+        }
+      });
+
+      if (error) {
+        console.error('Failed to send admin notification email:', error);
+      }
+
+    } catch (error) {
+      console.error('Error sending email notifications:', error);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      // 🔐 Check if user is authenticated
+      // Check if user is authenticated
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         throw new Error("You must be logged in to submit an event.");
       }
 
-      // 📋 Basic form validation
+      // Basic form validation
       if (!formData.title || !formData.description || !formData.date || !formData.location || !formData.category) {
         throw new Error("Please fill in all required fields.");
       }
 
-      // 🖼️ Handle image upload
+      // Validate description length
+      if (formData.description.length > DESCRIPTION_LIMIT) {
+        throw new Error(`Description must be ${DESCRIPTION_LIMIT} characters or less.`);
+      }
+
+      // Handle image upload
       let imageUrl = null;
       if (imageFile) {
         const fileExt = imageFile.name.split('.').pop();
@@ -79,7 +142,7 @@ const EventSubmissionModal = ({ onEventAdded }: { onEventAdded?: () => void }) =
         imageUrl = publicUrl;
       }
 
-      // 👤 Get user profile
+      // Get user profile
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("id")
@@ -90,30 +153,32 @@ const EventSubmissionModal = ({ onEventAdded }: { onEventAdded?: () => void }) =
         throw new Error("User profile not found.");
       }
 
-      // 💾 Save event to Supabase - ALL events go to pending status
-      const { error: insertError } = await supabase.from("events").insert([
-        {
-          title: formData.title,
-          description: formData.description,
-          date: formData.date,
-          time: formData.time,
-          location: formData.location,
-          category: formData.category,
-          price: formData.price,
-          tags: tagArray,
-          image: imageUrl,
-          user_id: profile.id,
-          status: "pending", // All events need admin approval
-        },
-      ]);
+      const eventData = {
+        title: formData.title,
+        description: formData.description,
+        date: formData.date,
+        time: formData.time,
+        location: formData.location,
+        category: formData.category,
+        price: formData.price,
+        tags: tagArray,
+        image: imageUrl,
+        user_id: profile.id,
+        status: "pending", // All events need admin approval
+      };
+
+      const { error: insertError } = await supabase.from("events").insert([eventData]);
 
       if (insertError) {
         throw new Error(insertError.message);
       }
 
+      // Send email notifications
+      await sendEmailNotifications(eventData, user.email || '');
+
       toast({
         title: "Event Submitted 📝",
-        description: "Your event is pending admin approval. You'll be notified once it's reviewed.",
+        description: "Your event has been submitted and is pending admin approval. You can track its status in your profile.",
       });
 
       // Reset form
@@ -142,172 +207,345 @@ const EventSubmissionModal = ({ onEventAdded }: { onEventAdded?: () => void }) =
     }
   };
 
-  const handleSubmit = handleSubmitWithAdminApproval;
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    if (value.length <= DESCRIPTION_LIMIT) {
+      setFormData({...formData, description: value});
+    }
+  };
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-6 right-6 h-16 w-16 rounded-full bg-gradient-to-br from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-2xl hover:shadow-xl transform hover:scale-105 transition-all duration-300 z-50 border-4 border-yellow-400 animate-pulse"
+        style={{ 
+          background: 'linear-gradient(135deg, #9a2907 0%, #cb3a2b 100%)',
+          borderColor: '#ffaf00',
+          boxShadow: '0 8px 32px rgba(154, 41, 7, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+        }}
+      >
+        <Plus className="h-8 w-8 mx-auto drop-shadow-lg" />
+      </button>
+    );
+  }
 
   return (
-    <>
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogTrigger asChild>
-          <Button
-            className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-retro-red-orange hover:bg-retro-deep-red text-retro-cream border-2 border-retro-warm-yellow shadow-lg hover:shadow-xl transition-all duration-300 animate-bounce-gentle z-50"
-            size="icon"
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      onClick={(e) => {
+        // Close modal when clicking outside
+        if (e.target === e.currentTarget) {
+          setIsOpen(false);
+        }
+      }}
+    >
+      <div 
+        className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl border-4 transform animate-in fade-in-0 zoom-in-95 duration-300"
+        style={{ 
+          backgroundColor: '#efd2b2',
+          borderColor: '#e1aa38',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div 
+          className="p-6 border-b-4 relative overflow-hidden"
+          style={{ 
+            borderColor: '#ffaf00',
+            background: 'linear-gradient(135deg, #00495e 0%, #0576a0 100%)'
+          }}
+        >
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-2 left-4 w-8 h-8 bg-white rounded-full"></div>
+            <div className="absolute top-8 right-8 w-4 h-4 bg-white rounded-full"></div>
+            <div className="absolute bottom-4 left-8 w-6 h-6 bg-white rounded-full"></div>
+          </div>
+          <h2 className="text-3xl font-bold text-center relative z-10" style={{ color: '#efd2b2', textShadow: '2px 2px 4px rgba(0,0,0,0.3)' }}>
+            ✨ Share Your Event ✨
+          </h2>
+          <p className="text-center mt-2 opacity-90" style={{ color: '#efd2b2' }}>
+            Let's make magic happen together!
+          </p>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 text-white font-bold transition-colors"
+            style={{ backgroundColor: '#cb3a2b' }}
           >
-            <Plus className="h-6 w-6" />
-          </Button>
-        </DialogTrigger>
+            ×
+          </button>
+        </div>
 
-        <DialogContent className="max-w-md mx-auto max-h-[90vh] overflow-y-auto bg-retro-cream border-2 border-retro-mustard">
-          <DialogHeader className="border-b-2 border-retro-warm-yellow/30 pb-4">
-            <DialogTitle className="text-2xl font-bold text-center text-retro-navy">
-              Share Your Event
-            </DialogTitle>
-          </DialogHeader>
+        <div className="p-6 space-y-5">
+          {/* Event Title */}
+          <div className="relative">
+            <label className="flex items-center mb-3 text-lg font-semibold" style={{ color: '#03223a' }}>
+              <Tag className="w-5 h-5 mr-2" style={{ color: '#0576a0' }} />
+              Event Title *
+            </label>
+            <input
+              type="text"
+              placeholder="e.g., Weekend Jazz at Java House"
+              value={formData.title}
+              onChange={(e) => setFormData({...formData, title: e.target.value})}
+              required
+              className="w-full px-4 py-3 rounded-xl border-3 font-medium text-lg transition-all duration-300 focus:scale-[1.02] focus:shadow-lg"
+              style={{ 
+                backgroundColor: '#ffffff',
+                borderColor: '#e1aa38',
+                color: '#03223a'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#0576a0'}
+              onBlur={(e) => e.target.style.borderColor = '#e1aa38'}
+            />
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-            <div>
-              <Label htmlFor="title" className="flex items-center mb-2 text-retro-navy">
-                <Tag className="w-4 h-4 mr-2 text-retro-bright-blue" />
-                Event Title
-              </Label>
-              <Input
-                id="title"
-                placeholder="e.g., Weekend Jazz at Java House"
-                value={formData.title}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
-                required
-                className="bg-white border-2 border-retro-mustard focus:border-retro-bright-blue focus:ring-retro-bright-blue/20"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="description" className="text-retro-navy">Description</Label>
-              <Textarea
-                id="description"
-                placeholder="Tell us about your event..."
+          {/* Description with Character Counter */}
+          <div className="relative">
+            <label className="block mb-3 text-lg font-semibold" style={{ color: '#03223a' }}>
+              Description *
+            </label>
+            <div className="relative">
+              <textarea
+                placeholder="Tell us about your amazing event..."
                 value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                onChange={handleDescriptionChange}
                 required
-                className="min-h-[80px] bg-white border-2 border-retro-mustard focus:border-retro-bright-blue focus:ring-retro-bright-blue/20"
+                rows={4}
+                className="w-full px-4 py-3 rounded-xl border-3 font-medium resize-none transition-all duration-300 focus:scale-[1.02] focus:shadow-lg pr-20"
+                style={{ 
+                  backgroundColor: '#ffffff',
+                  borderColor: descriptionRemaining < 50 ? '#cb3a2b' : '#e1aa38',
+                  color: '#03223a'
+                }}
+                onFocus={(e) => e.target.style.borderColor = descriptionRemaining < 50 ? '#cb3a2b' : '#0576a0'}
+                onBlur={(e) => e.target.style.borderColor = descriptionRemaining < 50 ? '#cb3a2b' : '#e1aa38'}
               />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="date" className="flex items-center mb-2 text-retro-navy">
-                  <Calendar className="w-4 h-4 mr-2 text-retro-deep-teal" />
-                  Date
-                </Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
-                  required
-                  className="bg-white border-2 border-retro-mustard focus:border-retro-bright-blue focus:ring-retro-bright-blue/20"
-                />
-              </div>
-              <div>
-                <Label htmlFor="time" className="text-retro-navy">Time</Label>
-                <Input
-                  id="time"
-                  type="time"
-                  value={formData.time}
-                  onChange={(e) => setFormData({...formData, time: e.target.value})}
-                  required
-                  className="bg-white border-2 border-retro-mustard focus:border-retro-bright-blue focus:ring-retro-bright-blue/20"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="location" className="flex items-center mb-2 text-retro-navy">
-                <MapPin className="w-4 h-4 mr-2 text-retro-red-orange" />
-                Location
-              </Label>
-              <Input
-                id="location"
-                placeholder="e.g., Westlands, Nairobi"
-                value={formData.location}
-                onChange={(e) => setFormData({...formData, location: e.target.value})}
-                required
-                className="bg-white border-2 border-retro-mustard focus:border-retro-bright-blue focus:ring-retro-bright-blue/20"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="category" className="text-retro-navy">Category</Label>
-              <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
-                <SelectTrigger className="bg-white border-2 border-retro-mustard focus:border-retro-bright-blue focus:ring-retro-bright-blue/20">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent className="bg-retro-cream border-2 border-retro-mustard">
-                  {categories.map((category) => (
-                    <SelectItem
-                      key={category}
-                      value={category}
-                      className="focus:bg-retro-warm-yellow/20 focus:text-retro-navy"
-                    >
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="price" className="text-retro-navy">Price</Label>
-              <Input
-                id="price"
-                placeholder="e.g., Free or KSh 1000"
-                value={formData.price}
-                onChange={(e) => setFormData({...formData, price: e.target.value})}
-                className="bg-white border-2 border-retro-mustard focus:border-retro-bright-blue focus:ring-retro-bright-blue/20"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="tags" className="text-retro-navy">Tags (comma-separated)</Label>
-              <Input
-                id="tags"
-                placeholder="e.g., music, outdoor, family-friendly"
-                value={formData.tags}
-                onChange={(e) => setFormData({...formData, tags: e.target.value})}
-                className="bg-white border-2 border-retro-mustard focus:border-retro-bright-blue focus:ring-retro-bright-blue/20"
-              />
-            </div>
-
-            <div className="flex flex-col">
-              <label
-                htmlFor="image"
-                className="cursor-pointer bg-retro-warm-yellow text-retro-navy border-2 border-retro-mustard rounded-full px-6 py-3 text-center font-semibold transition-colors hover:bg-retro-mustard"
+              <div 
+                className="absolute bottom-3 right-3 text-sm font-semibold px-2 py-1 rounded"
+                style={{
+                  color: descriptionRemaining < 50 ? '#cb3a2b' : descriptionRemaining < 100 ? '#ff8c00' : '#00495e',
+                  backgroundColor: descriptionRemaining < 50 ? '#fff1f0' : descriptionRemaining < 100 ? '#fff8f0' : '#f0f8ff'
+                }}
               >
-                Upload Event Image
+                {descriptionRemaining}/{DESCRIPTION_LIMIT}
+              </div>
+            </div>
+            <p 
+              className="text-sm mt-1"
+              style={{ 
+                color: descriptionRemaining < 50 ? '#cb3a2b' : '#03223a',
+                opacity: descriptionRemaining < 50 ? 1 : 0.7
+              }}
+            >
+              {descriptionRemaining < 50 
+                ? `⚠️ Only ${descriptionRemaining} characters remaining!`
+                : `${descriptionLength}/${DESCRIPTION_LIMIT} characters used`
+              }
+            </p>
+          </div>
+
+          {/* Date and Time */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="flex items-center mb-3 text-lg font-semibold" style={{ color: '#03223a' }}>
+                <Calendar className="w-5 h-5 mr-2" style={{ color: '#00495e' }} />
+                Date *
               </label>
               <input
-                id="image"
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData({...formData, date: e.target.value})}
+                required
+                className="w-full px-4 py-3 rounded-xl border-3 font-medium transition-all duration-300 focus:scale-[1.02] focus:shadow-lg"
+                style={{ 
+                  backgroundColor: '#ffffff',
+                  borderColor: '#e1aa38',
+                  color: '#03223a'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#0576a0'}
+                onBlur={(e) => e.target.style.borderColor = '#e1aa38'}
+              />
+            </div>
+            <div>
+              <label className="flex items-center mb-3 text-lg font-semibold" style={{ color: '#03223a' }}>
+                <Clock className="w-5 h-5 mr-2" style={{ color: '#00495e' }} />
+                Time
+              </label>
+              <input
+                type="time"
+                value={formData.time}
+                onChange={(e) => setFormData({...formData, time: e.target.value})}
+                className="w-full px-4 py-3 rounded-xl border-3 font-medium transition-all duration-300 focus:scale-[1.02] focus:shadow-lg"
+                style={{ 
+                  backgroundColor: '#ffffff',
+                  borderColor: '#e1aa38',
+                  color: '#03223a'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#0576a0'}
+                onBlur={(e) => e.target.style.borderColor = '#e1aa38'}
+              />
+            </div>
+          </div>
+
+          {/* Location */}
+          <div>
+            <label className="flex items-center mb-3 text-lg font-semibold" style={{ color: '#03223a' }}>
+              <MapPin className="w-5 h-5 mr-2" style={{ color: '#9a2907' }} />
+              Location *
+            </label>
+            <input
+              type="text"
+              placeholder="e.g., Westlands, Nairobi"
+              value={formData.location}
+              onChange={(e) => setFormData({...formData, location: e.target.value})}
+              required
+              className="w-full px-4 py-3 rounded-xl border-3 font-medium transition-all duration-300 focus:scale-[1.02] focus:shadow-lg"
+              style={{ 
+                backgroundColor: '#ffffff',
+                borderColor: '#e1aa38',
+                color: '#03223a'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#0576a0'}
+              onBlur={(e) => e.target.style.borderColor = '#e1aa38'}
+            />
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="block mb-3 text-lg font-semibold" style={{ color: '#03223a' }}>
+              Category *
+            </label>
+            <select
+              value={formData.category}
+              onChange={(e) => setFormData({...formData, category: e.target.value})}
+              required
+              disabled={loadingCategories}
+              className="w-full px-4 py-3 rounded-xl border-3 font-medium transition-all duration-300 focus:scale-[1.02] focus:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ 
+                backgroundColor: '#ffffff',
+                borderColor: '#e1aa38',
+                color: '#03223a'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#0576a0'}
+              onBlur={(e) => e.target.style.borderColor = '#e1aa38'}
+            >
+              <option value="">
+                {loadingCategories ? "Loading categories..." : "Select a category"}
+              </option>
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Price */}
+          <div>
+            <label className="block mb-3 text-lg font-semibold" style={{ color: '#03223a' }}>
+              Price
+            </label>
+            <input
+              type="text"
+              placeholder="e.g., Free or KSh 1000"
+              value={formData.price}
+              onChange={(e) => setFormData({...formData, price: e.target.value})}
+              className="w-full px-4 py-3 rounded-xl border-3 font-medium transition-all duration-300 focus:scale-[1.02] focus:shadow-lg"
+              style={{ 
+                backgroundColor: '#ffffff',
+                borderColor: '#e1aa38',
+                color: '#03223a'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#0576a0'}
+              onBlur={(e) => e.target.style.borderColor = '#e1aa38'}
+            />
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className="block mb-3 text-lg font-semibold" style={{ color: '#03223a' }}>
+              Tags
+            </label>
+            <input
+              type="text"
+              placeholder="e.g., music, outdoor, family-friendly"
+              value={formData.tags}
+              onChange={(e) => setFormData({...formData, tags: e.target.value})}
+              className="w-full px-4 py-3 rounded-xl border-3 font-medium transition-all duration-300 focus:scale-[1.02] focus:shadow-lg"
+              style={{ 
+                backgroundColor: '#ffffff',
+                borderColor: '#e1aa38',
+                color: '#03223a'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#0576a0'}
+              onBlur={(e) => e.target.style.borderColor = '#e1aa38'}
+            />
+            <p className="text-sm mt-1 opacity-70" style={{ color: '#03223a' }}>
+              Separate tags with commas
+            </p>
+          </div>
+
+          {/* Image Upload */}
+          <div>
+            <label className="block mb-3 text-lg font-semibold" style={{ color: '#03223a' }}>
+              <Camera className="w-5 h-5 inline mr-2" style={{ color: '#9a2907' }} />
+              Event Image
+            </label>
+            <div className="relative">
+              <input
                 type="file"
                 accept="image/*"
                 onChange={(e) => setImageFile(e.target.files?.[0] || null)}
                 className="hidden"
+                id="image-upload"
               />
-              <span className="mt-2 text-retro-navy text-sm">
-                {imageFile ? imageFile.name : "No file chosen"}
-              </span>
-            </div>
-
-            <div className="pt-4">
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-retro-red-orange hover:bg-retro-deep-red text-retro-cream border-2 border-retro-warm-yellow transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              <label
+                htmlFor="image-upload"
+                className="w-full px-6 py-4 rounded-xl border-3 border-dashed cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg flex flex-col items-center justify-center text-center font-medium"
+                style={{ 
+                  backgroundColor: '#ffffff',
+                  borderColor: '#ffaf00',
+                  color: '#03223a'
+                }}
               >
-                {isSubmitting ? 'Submitting...' : 'Submit Event'}
-              </Button>
+                <Camera className="w-8 h-8 mb-2" style={{ color: '#9a2907' }} />
+                {imageFile ? (
+                  <span className="text-green-600 font-semibold">📸 {imageFile.name}</span>
+                ) : (
+                  <>
+                    <span className="font-semibold">Click to upload image</span>
+                    <span className="text-sm opacity-70">Optional - Make your event stand out!</span>
+                  </>
+                )}
+              </label>
             </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </>
+          </div>
+
+          {/* Submit Button */}
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isSubmitting || descriptionLength > DESCRIPTION_LIMIT}
+            className="w-full py-4 rounded-xl font-bold text-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
+            style={{ 
+              background: 'linear-gradient(135deg, #9a2907 0%, #cb3a2b 100%)',
+              color: '#efd2b2',
+              border: '3px solid #ffaf00',
+              textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
+              boxShadow: '0 8px 25px rgba(154, 41, 7, 0.4)'
+            }}
+          >
+            {isSubmitting ? '🚀 Launching Event...' : '🎉 Submit Event'}
+          </button>
+
+          <p className="text-center text-sm opacity-70 mt-4" style={{ color: '#03223a' }}>
+            * Required fields
+          </p>
+        </div>
+      </div>
+    </div>
   );
 };
 
