@@ -1,73 +1,45 @@
-# Welcome to your Lovable project
+# Kwa Ground Vibes Hub
 
-## Project info
+## Project Overview
 
-**URL**: https://lovable.dev/projects/ab476822-3ef7-485b-bd5d-8b22eaca716e
+Kwa Ground Vibes Hub is a community-driven event platform that allows users to submit, discover, and manage local events. Users can create and submit events, which are then reviewed and approved by an admin before being published. The platform features:
 
-## How can I edit this code?
+- **Event Submission:** Users can submit events with details such as title, description, date, time, location, category, and more.
+- **Admin Review:** Submitted events require admin approval before they are visible to the public.
+- **User Profiles:** Each event is associated with a user profile, allowing users to track the status of their events.
+- **Email Notifications:** The system sends email notifications to admins for new event submissions and to users when their events are approved (using Supabase Edge Functions and the Resend API).
+- **Event Discovery:** Approved events are displayed for all users to browse and search.
+- **Modern UI:** Built with React, TypeScript, Tailwind CSS for a clean and responsive user experience.
 
-There are several ways of editing your application.
+This project is ideal for local communities, organizations, or groups looking to manage and promote events in a collaborative and moderated environment.
 
-**Use Lovable**
+*This project was built leveraging Lovable AI for development and code generation assistance.*
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/ab476822-3ef7-485b-bd5d-8b22eaca716e) and start prompting.
+## Technologies Used
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
 - React
-- shadcn-ui
+- TypeScript
+- Vite
 - Tailwind CSS
+- Supabase (Database, Auth, Edge Functions)
+- Resend (Transactional Email API)
 
-## How can I deploy this project?
+## Installation & Setup
 
-Simply open [Lovable](https://lovable.dev/projects/ab476822-3ef7-485b-bd5d-8b22eaca716e) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+1. **Clone the repository:**
+   ```sh
+   git clone <YOUR_GIT_URL>
+   cd <YOUR_PROJECT_NAME>
+   ```
+2. **Install dependencies:**
+   ```sh
+   npm install
+   ```
+3. **Set up environment variables:**
+   - Create a `.env` file and add your Supabase and Resend API keys as needed.
+4. **Start the development server:**
+   ```sh
+   npm run dev
+   ```
+5. **Supabase setup:**
+   - Make sure your Supabase project has the required tables (`events`, `profiles`, `categories`) and Edge Functions deployed.
