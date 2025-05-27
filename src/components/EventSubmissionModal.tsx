@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Calendar, MapPin, Users, Tag, Camera, Clock } from 'lucide-react';
+import { Plus, Calendar, MapPin, Users, Tag, Camera, Clock, FileText, DollarSign, Hash } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -262,19 +262,9 @@ const EventSubmissionModal = ({ onEventAdded }: { onEventAdded?: () => void }) =
             <div className="absolute top-8 right-8 w-4 h-4 bg-white rounded-full"></div>
             <div className="absolute bottom-4 left-8 w-6 h-6 bg-white rounded-full"></div>
           </div>
-          <h2 className="text-3xl font-bold text-center relative z-10" style={{ color: '#efd2b2', textShadow: '2px 2px 4px rgba(0,0,0,0.3)' }}>
+          <h2 className="text-lg font-bold text-center relative z-10" style={{ color: '#efd2b2', textShadow: '2px 2px 4px rgba(0,0,0,0.3)' }}>
             ✨ Share Your Event ✨
           </h2>
-          <p className="text-center mt-2 opacity-90" style={{ color: '#efd2b2' }}>
-            Let's make magic happen together!
-          </p>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 text-white font-bold transition-colors"
-            style={{ backgroundColor: '#cb3a2b' }}
-          >
-            ×
-          </button>
         </div>
 
         <div className="p-6 space-y-5">
@@ -282,7 +272,7 @@ const EventSubmissionModal = ({ onEventAdded }: { onEventAdded?: () => void }) =
           <div className="relative">
             <label className="flex items-center mb-3 text-lg font-semibold" style={{ color: '#03223a' }}>
               <Tag className="w-5 h-5 mr-2" style={{ color: '#0576a0' }} />
-              Event Title *
+              Event Title
             </label>
             <input
               type="text"
@@ -303,8 +293,9 @@ const EventSubmissionModal = ({ onEventAdded }: { onEventAdded?: () => void }) =
 
           {/* Description with Character Counter */}
           <div className="relative">
-            <label className="block mb-3 text-lg font-semibold" style={{ color: '#03223a' }}>
-              Description *
+            <label className="flex items-center mb-3 text-lg font-semibold" style={{ color: '#03223a' }}>
+              <FileText className="w-5 h-5 mr-2" style={{ color: '#00495e' }} />
+              Description
             </label>
             <div className="relative">
               <textarea
@@ -351,7 +342,7 @@ const EventSubmissionModal = ({ onEventAdded }: { onEventAdded?: () => void }) =
             <div>
               <label className="flex items-center mb-3 text-lg font-semibold" style={{ color: '#03223a' }}>
                 <Calendar className="w-5 h-5 mr-2" style={{ color: '#00495e' }} />
-                Date *
+                Date
               </label>
               <input
                 type="date"
@@ -393,7 +384,7 @@ const EventSubmissionModal = ({ onEventAdded }: { onEventAdded?: () => void }) =
           <div>
             <label className="flex items-center mb-3 text-lg font-semibold" style={{ color: '#03223a' }}>
               <MapPin className="w-5 h-5 mr-2" style={{ color: '#9a2907' }} />
-              Location *
+              Location
             </label>
             <input
               type="text"
@@ -414,8 +405,9 @@ const EventSubmissionModal = ({ onEventAdded }: { onEventAdded?: () => void }) =
 
           {/* Category */}
           <div>
-            <label className="block mb-3 text-lg font-semibold" style={{ color: '#03223a' }}>
-              Category *
+            <label className="flex items-center mb-3 text-lg font-semibold" style={{ color: '#03223a' }}>
+              <Users className="w-5 h-5 mr-2" style={{ color: '#0576a0' }} />
+              Category
             </label>
             <select
               value={formData.category}
@@ -444,7 +436,8 @@ const EventSubmissionModal = ({ onEventAdded }: { onEventAdded?: () => void }) =
 
           {/* Price */}
           <div>
-            <label className="block mb-3 text-lg font-semibold" style={{ color: '#03223a' }}>
+            <label className="flex items-center mb-3 text-lg font-semibold" style={{ color: '#03223a' }}>
+              <DollarSign className="w-5 h-5 mr-2" style={{ color: '#9a2907' }} />
               Price
             </label>
             <input
@@ -465,7 +458,8 @@ const EventSubmissionModal = ({ onEventAdded }: { onEventAdded?: () => void }) =
 
           {/* Tags */}
           <div>
-            <label className="block mb-3 text-lg font-semibold" style={{ color: '#03223a' }}>
+            <label className="flex items-center mb-3 text-lg font-semibold" style={{ color: '#03223a' }}>
+              <Hash className="w-5 h-5 mr-2" style={{ color: '#00495e' }} />
               Tags
             </label>
             <input
@@ -482,7 +476,7 @@ const EventSubmissionModal = ({ onEventAdded }: { onEventAdded?: () => void }) =
               onFocus={(e) => e.target.style.borderColor = '#0576a0'}
               onBlur={(e) => e.target.style.borderColor = '#e1aa38'}
             />
-            <p className="text-sm mt-1 opacity-70" style={{ color: '#03223a' }}>
+            <p className="text-xs mt-1 opacity-70" style={{ color: '#03223a' }}>
               Separate tags with commas
             </p>
           </div>
@@ -516,7 +510,7 @@ const EventSubmissionModal = ({ onEventAdded }: { onEventAdded?: () => void }) =
                 ) : (
                   <>
                     <span className="font-semibold">Click to upload image</span>
-                    <span className="text-sm opacity-70">Optional - Make your event stand out!</span>
+                    <span className="text-sm opacity-70">Optional - Make your event stand out</span>
                   </>
                 )}
               </label>
@@ -528,7 +522,7 @@ const EventSubmissionModal = ({ onEventAdded }: { onEventAdded?: () => void }) =
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting || descriptionLength > DESCRIPTION_LIMIT}
-            className="w-full py-4 rounded-xl font-bold text-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
+            className="w-full py-4 rounded-xl font-bold text-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
             style={{ 
               background: 'linear-gradient(135deg, #9a2907 0%, #cb3a2b 100%)',
               color: '#efd2b2',
@@ -539,10 +533,6 @@ const EventSubmissionModal = ({ onEventAdded }: { onEventAdded?: () => void }) =
           >
             {isSubmitting ? '🚀 Launching Event...' : '🎉 Submit Event'}
           </button>
-
-          <p className="text-center text-sm opacity-70 mt-4" style={{ color: '#03223a' }}>
-            * Required fields
-          </p>
         </div>
       </div>
     </div>
