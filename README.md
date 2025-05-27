@@ -14,10 +14,10 @@ Kwa Ground Vibes Hub is a community-driven event platform that allows users to s
 ## Screenshots
 
 ### Laptop View
-![Laptop View](/assets/laptop_preview.png)
+![Laptop View](./assets/laptop_preview.png)
 
 ### Mobile View
-![Mobile View](/assets/mobile_preview.png)
+![Mobile View](./assets/mobile_preview.png)
 
 This project is ideal for local communities, organizations, or groups looking to manage and promote events in a collaborative and moderated environment.
 
