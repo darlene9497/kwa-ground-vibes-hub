@@ -476,7 +476,7 @@ const Index = () => {
                       
                       {/* Description */}
                       <p className="text-black text-sm leading-relaxed font-medium break-words max-w-full" style={{wordBreak: 'break-word', overflowWrap: 'break-word'}}>
-                        {event.description.length > 100 ? event.description.slice(0, 100) + '...' : event.description}
+                        {event.description}
                       </p>
                       
                       {/* Info Rows */}
