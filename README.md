@@ -11,6 +11,14 @@ Kwa Ground Vibes Hub is a community-driven event platform that allows users to s
 - **Event Discovery:** Approved events are displayed for all users to browse and search.
 - **Modern UI:** Built with React, TypeScript, Tailwind CSS for a clean and responsive user experience.
 
+## Screenshots
+
+### Laptop View
+![Laptop View](assets/laptop_preview.png)
+
+### Mobile View
+![Mobile View](assets/mobile_preview.png)
+
 This project is ideal for local communities, organizations, or groups looking to manage and promote events in a collaborative and moderated environment.
 
 *This project was built leveraging Lovable AI for development and code generation assistance.*
