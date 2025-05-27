@@ -46,6 +46,8 @@ const Index = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const [searchPerformed, setSearchPerformed] = useState(false);
+
   const displayName =
     user?.profile?.name ||
     user?.profile?.full_name ||
@@ -206,6 +208,13 @@ const Index = () => {
     }).toLowerCase();
   };
 
+  useEffect(() => {
+    if (searchPerformed && filteredEvents.length > 0) {
+      setSearchQuery('');
+      setSearchPerformed(false);
+    }
+  }, [filteredEvents, searchPerformed]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-retro-cream via-retro-warm-yellow/20 to-retro-deep-teal/10">
       {/* Header */}
@@ -280,15 +289,25 @@ const Index = () => {
             </div>
             <div className="w-full flex justify-center">
               <div className="w-full">
-                <div className="relative">
+                <form
+                  onSubmit={e => {
+                    e.preventDefault();
+                    setSearchPerformed(true);
+                    setSearchQuery(searchQuery.trim());
+                  }}
+                  className="relative"
+                >
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-retro-deep-teal w-5 h-5" />
                   <Input
                     placeholder="Search events, locations, or vibes..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={e => {
+                      setSearchQuery(e.target.value);
+                      setSearchPerformed(false);
+                    }}
                     className="pl-10 bg-retro-cream border-2 border-black  focus:bg-white transition-colors rounded-lg text-retro-navy text-base"
                   />
-                </div>
+                </form>
               </div>
             </div>
           </div>
@@ -306,13 +325,25 @@ const Index = () => {
             
             <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-retro-deep-teal w-5 h-5" />
-                <Input
-                  placeholder="Search events, locations, or vibes..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-retro-cream border-2 border-black focus:border-black focus:bg-white transition-colors rounded-lg text-black text-base"
-                />
+                <form
+                  onSubmit={e => {
+                    e.preventDefault();
+                    setSearchPerformed(true);
+                    setSearchQuery(searchQuery.trim());
+                  }}
+                  className="relative"
+                >
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-retro-deep-teal w-5 h-5" />
+                  <Input
+                    placeholder="Search events, locations, or vibes..."
+                    value={searchQuery}
+                    onChange={e => {
+                      setSearchQuery(e.target.value);
+                      setSearchPerformed(false);
+                    }}
+                    className="pl-10 bg-retro-cream border-2 border-black focus:border-black focus:bg-white transition-colors rounded-lg text-black text-base"
+                  />
+                </form>
               </div>
             </div>
 
@@ -389,6 +420,20 @@ const Index = () => {
             </h2>
             <span className="text-sm text-retro-deep-teal">{filteredEvents.length} events</span>
           </div>
+
+          {filteredEvents.length === 0 && searchPerformed && (
+            <Card className="text-center py-8 bg-retro-cream border-2 border-retro-mustard">
+              <CardContent>
+                <div className="text-retro-deep-teal">
+                  <Sparkles className="w-12 h-12 mx-auto mb-3 text-retro-bright-blue" />
+                  <h3 className="font-medium mb-2 text-retro-navy">No events found</h3>
+                  <p className="text-retro-cool-teal">
+                    No events match your search. Try a different keyword.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {filteredEvents.length === 0 ? (
             <Card className="text-center py-8 bg-retro-cream border-2 border-retro-mustard">
