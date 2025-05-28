@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import logo from '../../assets/kwa-ground-logo.png';
 import { Search, MapPin, Sparkles, User, Calendar, Clock, DollarSign, Heart, Share2  } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -334,7 +335,7 @@ const Index = () => {
     const shareData = {
       title: event.title,
       text: `Check out this event: ${event.title}\n\n${event.description}\n\nDate: ${formatDate(event.date)}\nTime: ${formatTime(event.time)}\nLocation: ${event.location}\nPrice: ${event.price?.trim().toLowerCase() === 'free' ? 'Free' : event.price?.toLowerCase().includes('ksh') ? event.price : `KSh ${event.price}`}`,
-      url: window.location.href // You can customize this to a specific event URL
+      url: window.location.href
     };
   
     try {
@@ -404,7 +405,7 @@ const Index = () => {
         <div className="flex flex-col sm:hidden w-full">
           <div className="flex items-center justify-between w-full mb-2">
             <img
-              src="./assets/kwa-ground-logo.png"
+              src={logo}
               alt="KwaGround Logo"
               className="h-24 w-auto"
               draggable={false}
@@ -703,7 +704,7 @@ const Index = () => {
                         <img src={event.image} alt={event.title} className="object-cover w-full h-full" />
                       ) : (
                         <img
-                          src="/assets/kwa-ground-logo.png"
+                          src={logo}
                           alt="KwaGround Logo"
                           className="opacity-30 w-40 h-40"
                           style={{ filter: 'grayscale(1)' }}
