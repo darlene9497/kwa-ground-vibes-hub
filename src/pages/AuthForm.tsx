@@ -96,7 +96,7 @@ export default function AuthForm() {
     <div
       className="min-h-screen bg-cover bg-center flex items-center justify-start px-4 md:px-4"
       style={{
-        backgroundImage: `url('/assets/auth-bg.png')`,
+        backgroundImage: `url('../../assets/auth-bg.png')`,
       }}
     >
       {/* Form Wrapper */}

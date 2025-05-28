@@ -44,7 +44,7 @@ const FilterBar = ({ activeFilters, onFilterToggle }: FilterBarProps) => {
   return (
     <div className="
       bg-retro-cool-teal
-      py-2 sticky top-0 z-10 
+      py-2 sticky top-0 z-50 
       border-b-4 border-black
       relative
     ">

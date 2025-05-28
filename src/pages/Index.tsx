@@ -486,13 +486,16 @@ const Index = () => {
                   )}
                 </div>
               ) : (
-                <Button
-                  variant="default"
-                  className="text-xs bg-retro-burnt-orange hover:bg-retro-deep-red text-retro-cream border-2 border-retro-warm-yellow"
-                  onClick={() => (window.location.href = "/auth")}
-                >
-                  Login
-                </Button>
+                <div className="flex flex-col items-center gap-2">
+                  <Button
+                    variant="default"
+                    className="text-xs bg-retro-burnt-orange hover:bg-retro-deep-red text-retro-cream border-2 border-retro-warm-yellow"
+                    onClick={() => (window.location.href = "/auth")}
+                  >
+                    Login
+                  </Button>
+                  <p className="text-xs text-retro-navy italic">Login to share an event</p>
+                </div>
               )}
             </div>
           </div>
@@ -628,13 +631,16 @@ const Index = () => {
                 )}
               </div>
             ) : (
-              <Button
-                variant="default"
-                className="text-xs bg-retro-red-orange hover:bg-retro-deep-red text-retro-cream border-2 border-retro-warm-yellow"
-                onClick={() => (window.location.href = "/auth")}
-              >
-                Login
-              </Button>
+              <div className="flex flex-col items-center gap-2">
+                <Button
+                  variant="default"
+                  className="text-xs bg-retro-red-orange hover:bg-retro-deep-red text-retro-cream border-2 border-retro-warm-yellow"
+                  onClick={() => (window.location.href = "/auth")}
+                >
+                  Login
+                </Button>
+                <p className="text-xs text-retro-navy italic">Login to share an event</p>
+              </div>
             )}
           </div>
         </div>
