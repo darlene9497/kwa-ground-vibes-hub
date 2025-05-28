@@ -525,7 +525,7 @@ const Index = () => {
           
           <div className="flex-shrink-0">
             <img
-              src="/assets/kwa-ground-logo.png"
+              src={logo}
               alt="KwaGround Logo"
               className="h-24 w-auto"
               draggable={false}
