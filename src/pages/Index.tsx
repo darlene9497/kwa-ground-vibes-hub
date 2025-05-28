@@ -404,7 +404,7 @@ const Index = () => {
         <div className="flex flex-col sm:hidden w-full">
           <div className="flex items-center justify-between w-full mb-2">
             <img
-              src="/assets/kwa-ground-logo.png"
+              src="./assets/kwa-ground-logo.png"
               alt="KwaGround Logo"
               className="h-24 w-auto"
               draggable={false}
