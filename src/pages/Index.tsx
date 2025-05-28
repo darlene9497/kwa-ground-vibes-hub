@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, MapPin, Sparkles, User, Calendar, Clock, DollarSign } from 'lucide-react';
+import { Search, MapPin, Sparkles, User, Calendar, Clock, DollarSign, Heart, Share2  } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import FilterBar from '@/components/FilterBar';
 import EventSubmissionModal from '@/components/EventSubmissionModal';
 import { supabase } from '@/lib/supabaseClient';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 
 interface User {
   id: string;
@@ -21,7 +22,7 @@ interface User {
 }
 
 interface Event {
-  id: number;
+  id: string;
   title: string;
   description: string;
   date: string;
@@ -42,11 +43,13 @@ const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [userEvents, setUserEvents] = useState<Event[]>([]);
-
+  const [favoriteEvents, setFavoriteEvents] = useState<string[]>([]);
+  const [savedEvents, setSavedEvents] = useState<Event[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
+  const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
   const [searchPerformed, setSearchPerformed] = useState(false);
+  const { toast } = useToast();
 
   const displayName =
     user?.profile?.name ||
@@ -56,82 +59,125 @@ const Index = () => {
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-      if (user) {
-        setUser(user);
+        if (user?.id) {
+          setUser(user);
 
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('name')
-          .eq('id', user.id)
-          .single();
+          // Fetch profile
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('name')
+            .eq('id', user.id)
+            .single();
 
-        if (profileError) {
-          console.error('Error fetching profile:', profileError);
-        } else if (profileData) {
-          setUser((prevUser: User | null) => ({
-            ...prevUser!,
-            profile: profileData,
-          }));
+          if (profileError) {
+            console.error('❌ Error fetching profile:', profileError);
+          } else if (profileData) {
+            setUser((prevUser: User | null) => ({
+              ...prevUser!,
+              profile: profileData,
+            }));
+          }
+
+          // Fetch user events
+          const { data: myEvents, error: eventsError } = await supabase
+            .from('events')
+            .select('*')
+            .eq('user_id', user.id);
+
+          if (eventsError) {
+            console.error('❌ Error fetching user events:', eventsError);
+          } else {
+            const validatedEvents = (myEvents || []).map(event => ({
+              ...event,
+              id: event.id,
+              title: event.title || '',
+              description: event.description || '',
+              date: event.date || '',
+              time: event.time || '',
+              location: event.location || '',
+              category: event.category || '',
+              status: event.status || '',
+              tags: event.tags || [],
+              user_id: event.user_id || '',
+              created_at: event.created_at || ''
+            })) as unknown as Event[];
+            setUserEvents(validatedEvents);
+          }
+
+          // Fetch user's favorite events
+          const { data: favorites, error: favError } = await supabase
+            .from('user_favorites')
+            .select('event_id')
+            .eq('user_id', user.id);
+
+          if (favError) {
+            console.error('Error details:', {
+              message: favError.message,
+              details: favError.details,
+              hint: favError.hint,
+              code: favError.code
+            });
+          } else {
+            console.log('✅ Favorites fetched successfully:', favorites);
+            const favoriteIds = favorites?.map(fav => fav.event_id).filter((id): id is string => !!id) || [];
+            console.log('📝 Final favorite IDs:', favoriteIds);
+            setFavoriteEvents(favoriteIds);
+          }
+        } else {
+          console.log('👤 No user authenticated');
         }
+      } catch (error) {
+        console.error('❌ Error in fetchUserProfile:', error);
+      }
+    };
 
-        const { data: myEvents, error: eventsError } = await supabase
+    const fetchApprovedEvents = async () => {
+      try {
+        const { data, error } = await supabase
           .from('events')
           .select('*')
-          .eq('user_id', user.id);
+          .eq('status', 'approved');
 
-        if (eventsError) {
-          console.error('Error fetching user events:', eventsError);
+        if (error) {
+          console.error('❌ Error fetching events:', error);
         } else {
-          const validatedEvents = (myEvents || []).map(event => ({
+          const validatedEvents = data.map(event => ({
             ...event,
-            id: Number(event.id),
+            id: event.id,
             title: event.title || '',
             description: event.description || '',
             date: event.date || '',
             time: event.time || '',
             location: event.location || '',
             category: event.category || '',
-            status: event.status || '',
-            tags: event.tags || [],
-            user_id: event.user_id || '',
-            created_at: event.created_at || ''
-          })) as unknown as Event[];
-          setUserEvents(validatedEvents);
+            tags: event.tags || []
+          })) as Event[];
+          console.log('📅 Events loaded:', validatedEvents.length);
+          setEvents(validatedEvents);
         }
-      }
-    };
-
-    const fetchApprovedEvents = async () => {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .eq('status', 'approved');
-
-      if (error) {
-        console.error('Error fetching events:', error);
-      } else {
-        const validatedEvents = data.map(event => ({
-          ...event,
-          id: Number(event.id),
-          title: event.title || '',
-          description: event.description || '',
-          date: event.date || '',
-          time: event.time || '',
-          location: event.location || '',
-          category: event.category || '',
-          tags: event.tags || []
-        })) as Event[];
-        setEvents(validatedEvents);
+      } catch (error) {
+        console.error('❌ Error in fetchApprovedEvents:', error);
       }
     };
 
     fetchUserProfile();
     fetchApprovedEvents();
   }, []);
+
+  // Fetch saved events when favorites change
+  useEffect(() => {    
+    if (favoriteEvents.length > 0 && events.length > 0) {
+      const saved = events.filter(event => favoriteEvents.includes(event.id));
+      setSavedEvents(saved);
+    } else {
+      setSavedEvents([]);
+    }
+  }, [favoriteEvents, events]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -160,6 +206,8 @@ const Index = () => {
       console.error('Logout error:', error.message);
     } else {
       setUser(null);
+      setFavoriteEvents([]);
+      setSavedEvents([]);
       window.location.href = '/auth';
     }
   };
@@ -215,173 +263,215 @@ const Index = () => {
     }
   }, [filteredEvents, searchPerformed]);
 
+  const handleFavoriteToggle = async (eventId: string) => {
+    if (!user?.id) {
+      window.location.href = '/auth';
+      return;
+    }
+
+    setIsLoadingFavorites(true);
+
+    const isFavorited = favoriteEvents.includes(eventId);
+    
+    try {
+      if (isFavorited) { 
+        const { error } = await supabase
+          .from('user_favorites')
+          .delete()
+          .match({ 
+            user_id: user.id, 
+            event_id: eventId 
+          });
+
+        if (error) {
+          console.error('Error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+        } else {
+          setFavoriteEvents(prev => {
+            const newFavorites = prev.filter(id => id !== eventId);
+            return newFavorites;
+          });
+        }
+      } else {        
+        const { data, error } = await supabase
+          .from('user_favorites')
+          .insert({ 
+            user_id: user.id, 
+            event_id: eventId 
+          })
+          .select();
+
+        if (error) {
+          console.error('Error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+        } else {
+          setFavoriteEvents(prev => {
+            // Only add if not already in favorites
+            if (!prev.includes(eventId)) {
+              const newFavorites = [...prev, eventId];
+              return newFavorites;
+            }
+            return prev;
+          });
+        }
+      }
+    } catch (error) {
+      console.error('❌ Unexpected error in handleFavoriteToggle:', error);
+    } finally {
+      setIsLoadingFavorites(false);
+    }
+  };
+
+  const handleShareEvent = async (event) => {
+    const shareData = {
+      title: event.title,
+      text: `Check out this event: ${event.title}\n\n${event.description}\n\nDate: ${formatDate(event.date)}\nTime: ${formatTime(event.time)}\nLocation: ${event.location}\nPrice: ${event.price?.trim().toLowerCase() === 'free' ? 'Free' : event.price?.toLowerCase().includes('ksh') ? event.price : `KSh ${event.price}`}`,
+      url: window.location.href // You can customize this to a specific event URL
+    };
+  
+    try {
+      // Check if the Web Share API is supported
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        toast({
+          title: "Event Shared 🚀",
+          description: "Event details have been shared successfully!",
+        });
+      } else {
+        // Fallback: Copy to clipboard
+        const shareText = `${shareData.title}\n\n${shareData.text}\n\nView more at: ${shareData.url}`;
+        
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(shareText);
+          toast({
+            title: "Copied to Clipboard 📋",
+            description: "Event details have been copied to your clipboard and are ready to share!",
+          });
+        } else {
+          // Fallback for older browsers
+          const textArea = document.createElement('textarea');
+          textArea.value = shareText;
+          textArea.style.position = 'fixed';
+          textArea.style.left = '-999999px';
+          textArea.style.top = '-999999px';
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          
+          try {
+            document.execCommand('copy');
+            toast({
+              title: "Copied to Clipboard 📋",
+              description: "Event details have been copied to your clipboard and are ready to share!",
+            });
+          } catch (err) {
+            console.error('Failed to copy text: ', err);
+            toast({
+              title: "Share Failed ❌",
+              description: "Unable to share or copy event details. Please try again.",
+              variant: "destructive",
+            });
+          } finally {
+            document.body.removeChild(textArea);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error sharing event:', error);
+      toast({
+        title: "Share Failed ❌",
+        description: "Unable to share event. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-retro-cream via-retro-warm-yellow/20 to-retro-deep-teal/10">
-      {/* Header */}
-      <header className="bg-retro-cream border-b-4 border-black px-2 sm:px-4 py-2">
-        <div className="max-w-7xl mx-auto w-full">
-          {/* Mobile layout */}
-          <div className="flex flex-col sm:hidden w-full">
-            <div className="flex items-center justify-between w-full mb-2">
-              <img
-                src="/assets/kwa-ground-logo.png"
-                alt="KwaGround Logo"
-                className="h-24 w-auto"
-                draggable={false}
-              />
-              <div className="flex items-center">
-                {user ? (
-                  <div
-                    ref={dropdownRef}
-                    className="relative flex items-center gap-2"
-                  >
-                    <span className="text-sm text-retro-cream hidden sm:inline">
-                      {displayName}
-                    </span>
-                    <button
-                        onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                        className="p-2 rounded-full bg-retro-navy hover:bg-retro-navy/20 transition-colors"
-                        aria-label="Profile menu"
-                      >
-                        <User className="w-6 h-6 text-retro-warm-yellow sm:text-retro-warm-yellow text-retro-navy" />
-                      </button>
-
-                    {profileMenuOpen && (
-                      <div className="absolute right-0 top-full mt-2 w-72 bg-retro-navy shadow-lg rounded-lg border-2 border-retro-warm-yellow p-4 z-50 max-h-96 overflow-auto">
-                        <h3 className="text-sm font-semibold mb-2 text-retro-cream">Your Events</h3>
-                        {userEvents && userEvents.length > 0 ? (
-                          <ul className="space-y-2 text-sm">
-                            {userEvents.map((event: Event) => (
-                              <li key={event.id} className="border-b border-retro-cool-teal pb-2">
-                                <p className="font-medium text-retro-warm-yellow">{event.title}</p>
-                                <p className="text-xs text-retro-cream">Status: {event.status}</p>
-                                <p className="text-xs text-retro-cream">Date: {formatDate(event.date)}</p>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-sm text-retro-cream">
-                            You haven't posted any events yet.
-                          </p>
-                        )}
-
-                        <hr className="my-3 border-retro-cool-teal" />
-                        <Button
-                          variant="outline"
-                          className="w-full text-sm border-2 border-retro-warm-yellow text-retro-warm-yellow hover:bg-retro-warm-yellow hover:text-retro-navy transition-colors"
-                          onClick={handleLogout}
-                        >
-                          Logout
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <Button
-                    variant="default"
-                    className="text-xs bg-retro-burnt-orange hover:bg-retro-deep-red text-retro-cream border-2 border-retro-warm-yellow"
-                    onClick={() => (window.location.href = "/auth")}
-                  >
-                    Login
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className="w-full flex justify-center">
-              <div className="w-full">
-                <form
-                  onSubmit={e => {
-                    e.preventDefault();
-                    setSearchPerformed(true);
-                    setSearchQuery(searchQuery.trim());
-                  }}
-                  className="relative"
-                >
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-retro-deep-teal w-5 h-5" />
-                  <Input
-                    placeholder="Search events, locations, or vibes..."
-                    value={searchQuery}
-                    onChange={e => {
-                      setSearchQuery(e.target.value);
-                      setSearchPerformed(false);
-                    }}
-                    className="pl-10 bg-retro-cream border-2 border-black  focus:bg-white transition-colors rounded-lg text-retro-navy text-base"
-                  />
-                </form>
-              </div>
-            </div>
-          </div>
-
-          <div className="hidden sm:flex items-center justify-between h-24 w-full relative">
-            
-            <div className="flex-shrink-0">
-              <img
-                src="/assets/kwa-ground-logo.png"
-                alt="KwaGround Logo"
-                className="h-24 w-auto"
-                draggable={false}
-              />
-            </div>
-            
-            <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg">
-              <div className="relative">
-                <form
-                  onSubmit={e => {
-                    e.preventDefault();
-                    setSearchPerformed(true);
-                    setSearchQuery(searchQuery.trim());
-                  }}
-                  className="relative"
-                >
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-retro-deep-teal w-5 h-5" />
-                  <Input
-                    placeholder="Search events, locations, or vibes..."
-                    value={searchQuery}
-                    onChange={e => {
-                      setSearchQuery(e.target.value);
-                      setSearchPerformed(false);
-                    }}
-                    className="pl-10 bg-retro-cream border-2 border-black focus:border-black focus:bg-white transition-colors rounded-lg text-black text-base"
-                  />
-                </form>
-              </div>
-            </div>
-
-            <div className="flex-shrink-0 ml-auto flex items-center">
+    {/* Header */}
+    <header className="bg-retro-cream border-b-4 border-black px-2 sm:px-4 py-2">
+      <div className="max-w-7xl mx-auto w-full">
+        {/* Mobile layout */}
+        <div className="flex flex-col sm:hidden w-full">
+          <div className="flex items-center justify-between w-full mb-2">
+            <img
+              src="/assets/kwa-ground-logo.png"
+              alt="KwaGround Logo"
+              className="h-24 w-auto"
+              draggable={false}
+            />
+            <div className="flex items-center">
               {user ? (
                 <div
                   ref={dropdownRef}
                   className="relative flex items-center gap-2"
                 >
-                  <span className="text-sm text-retro-navy hidden sm:inline">
+                  <span className="text-sm text-retro-cream hidden sm:inline">
                     {displayName}
                   </span>
                   <button
-                    onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                    className="p-2 rounded-full bg-retro-navy hover:bg-retro-navy/20 transition-colors"
-                    aria-label="Profile menu"
-                  >
-                    <User className="w-6 h-6 text-retro-warm-yellow" />
-                  </button>
+                      onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+                      className="p-2 rounded-full bg-retro-navy hover:bg-retro-navy/20 transition-colors"
+                      aria-label="Profile menu"
+                    >
+                      <User className="w-6 h-6 text-retro-warm-yellow sm:text-retro-warm-yellow text-retro-navy" />
+                    </button>
 
-                  {profileMenuOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-72 bg-retro-navy shadow-lg rounded-lg border-2 border-retro-warm-yellow p-4 z-50 max-h-96 overflow-auto">
-                      <h3 className="text-sm font-semibold mb-2 text-retro-cream">Your Events</h3>
-                      {userEvents && userEvents.length > 0 ? (
-                        <ul className="space-y-2 text-sm">
-                          {userEvents.map((event: Event) => (
-                            <li key={event.id} className="border-b border-retro-cool-teal pb-2">
-                              <p className="font-medium text-retro-warm-yellow">{event.title}</p>
-                              <p className="text-xs text-retro-cream">Status: {event.status}</p>
-                              <p className="text-xs text-retro-cream">Date: {formatDate(event.date)}</p>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-sm text-retro-cream">
-                          You haven't posted any events yet.
-                        </p>
-                      )}
+                    {profileMenuOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-retro-navy shadow-lg rounded-lg border-2 border-retro-warm-yellow p-4 z-50 max-h-96 overflow-auto">
+                      <div className="space-y-4">
+                        {/* Your Events Section */}
+                        <div>
+                          <h3 className="text-sm font-semibold mb-2 text-retro-cream">Your Events</h3>
+                          {userEvents && userEvents.length > 0 ? (
+                            <ul className="space-y-2 text-sm">
+                              {userEvents.map((event: Event) => (
+                                <li key={event.id} className="border-b border-retro-cool-teal pb-2">
+                                  <p className="font-medium text-retro-warm-yellow">{event.title}</p>
+                                  <p className="text-xs text-retro-cream">Status: {event.status}</p>
+                                  <p className="text-xs text-retro-cream">Date: {formatDate(event.date)}</p>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-sm text-retro-cream">
+                              You haven't posted any events yet.
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Saved Events Section */}
+                        <div>
+                          <h3 className="text-sm font-semibold mb-2 text-retro-cream flex items-center gap-2">
+                            <Heart className="w-4 h-4 text-red-400" />
+                            Saved Events ({savedEvents.length})
+                          </h3>
+                          {savedEvents.length > 0 ? (
+                            <ul className="space-y-2 text-sm max-h-32 overflow-y-auto">
+                              {savedEvents.map((event: Event) => (
+                                <li key={event.id} className="border-b border-retro-cool-teal pb-2">
+                                  <p className="font-medium text-retro-warm-yellow">{event.title}</p>
+                                  <p className="text-xs text-retro-cream">Date: {formatDate(event.date)}</p>
+                                  <p className="text-xs text-retro-cream">Location: {event.location}</p>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-sm text-retro-cream">
+                              No saved events yet. Click the heart icon on events to save them!
+                            </p>
+                          )}
+                        </div>
+                      </div>
 
                       <hr className="my-3 border-retro-cool-teal" />
                       <Button
@@ -397,7 +487,7 @@ const Index = () => {
               ) : (
                 <Button
                   variant="default"
-                  className="text-xs bg-retro-red-orange hover:bg-retro-deep-red text-retro-cream border-2 border-retro-warm-yellow"
+                  className="text-xs bg-retro-burnt-orange hover:bg-retro-deep-red text-retro-cream border-2 border-retro-warm-yellow"
                   onClick={() => (window.location.href = "/auth")}
                 >
                   Login
@@ -405,8 +495,150 @@ const Index = () => {
               )}
             </div>
           </div>
+          <div className="w-full flex justify-center">
+            <div className="w-full">
+              <form
+                onSubmit={e => {
+                  e.preventDefault();
+                  setSearchPerformed(true);
+                  setSearchQuery(searchQuery.trim());
+                }}
+                className="relative"
+              >
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-retro-deep-teal w-5 h-5" />
+                <Input
+                  placeholder="Search events, locations, or vibes..."
+                  value={searchQuery}
+                  onChange={e => {
+                    setSearchQuery(e.target.value);
+                    setSearchPerformed(false);
+                  }}
+                  className="pl-10 bg-retro-cream border-2 border-black  focus:bg-white transition-colors rounded-lg text-retro-navy text-base"
+                />
+              </form>
+            </div>
+          </div>
         </div>
-      </header>
+
+        <div className="hidden sm:flex items-center justify-between h-24 w-full relative">
+          
+          <div className="flex-shrink-0">
+            <img
+              src="/assets/kwa-ground-logo.png"
+              alt="KwaGround Logo"
+              className="h-24 w-auto"
+              draggable={false}
+            />
+          </div>
+          
+          <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg">
+            <div className="relative">
+              <form
+                onSubmit={e => {
+                  e.preventDefault();
+                  setSearchPerformed(true);
+                  setSearchQuery(searchQuery.trim());
+                }}
+                className="relative"
+              >
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-retro-deep-teal w-5 h-5" />
+                <Input
+                  placeholder="Search events, locations, or vibes..."
+                  value={searchQuery}
+                  onChange={e => {
+                    setSearchQuery(e.target.value);
+                    setSearchPerformed(false);
+                  }}
+                  className="pl-10 bg-retro-cream border-2 border-black focus:border-black focus:bg-white transition-colors rounded-lg text-black text-base"
+                />
+              </form>
+            </div>
+          </div>
+
+          <div className="flex-shrink-0 ml-auto flex items-center">
+            {user ? (
+              <div
+                ref={dropdownRef}
+                className="relative flex items-center gap-2"
+              >
+                <span className="text-sm text-retro-navy hidden sm:inline">
+                  {displayName}
+                </span>
+                <button
+                  onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+                  className="p-2 rounded-full bg-retro-navy hover:bg-retro-navy/20 transition-colors"
+                  aria-label="Profile menu"
+                >
+                  <User className="w-6 h-6 text-retro-warm-yellow" />
+                </button>
+
+                {profileMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-72 bg-retro-navy shadow-lg rounded-lg border-2 border-retro-warm-yellow p-4 z-50 max-h-96 overflow-auto">
+                    <h3 className="text-sm font-semibold mb-2 text-retro-cream">Your Events</h3>
+                    {userEvents && userEvents.length > 0 ? (
+                      <ul className="space-y-2 text-sm">
+                        {userEvents.map((event: Event) => (
+                          <li key={event.id} className="border-b border-retro-cool-teal pb-2">
+                            <p className="font-medium text-retro-warm-yellow">{event.title}</p>
+                            <p className="text-xs text-retro-cream">Status: {event.status}</p>
+                            <p className="text-xs text-retro-cream">Date: {formatDate(event.date)}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-retro-cream">
+                        You haven't posted any events yet.
+                      </p>
+                    )}
+
+                    <hr className="my-3 border-retro-cool-teal" />
+                    
+                    {/* Desktop Saved Events Section */}
+                    <div className="mb-4">
+                      <h3 className="text-sm font-semibold mb-2 text-retro-cream flex items-center gap-2">
+                        <Heart className="w-4 h-4 text-red-400" />
+                        Saved Events ({savedEvents.length})
+                      </h3>
+                      {savedEvents.length > 0 ? (
+                        <ul className="space-y-2 text-sm max-h-32 overflow-y-auto">
+                          {savedEvents.map((event: Event) => (
+                            <li key={event.id} className="border-b border-retro-cool-teal pb-2">
+                              <p className="font-medium text-retro-warm-yellow">{event.title}</p>
+                              <p className="text-xs text-retro-cream">Date: {formatDate(event.date)}</p>
+                              <p className="text-xs text-retro-cream">Location: {event.location}</p>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-retro-cream">
+                          No saved events yet. Click the heart icon on events to save them!
+                        </p>
+                      )}
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      className="w-full text-sm border-2 border-retro-warm-yellow text-retro-warm-yellow hover:bg-retro-warm-yellow hover:text-retro-navy transition-colors"
+                      onClick={handleLogout}
+                    >
+                      Logout
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Button
+                variant="default"
+                className="text-xs bg-retro-red-orange hover:bg-retro-deep-red text-retro-cream border-2 border-retro-warm-yellow"
+                onClick={() => (window.location.href = "/auth")}
+              >
+                Login
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </header>
 
       {/* Filter Bar */}
       <FilterBar activeFilters={activeFilters} onFilterToggle={handleFilterToggle} />
@@ -477,6 +709,29 @@ const Index = () => {
                           style={{ filter: 'grayscale(1)' }}
                         />
                       )}
+
+                      {/* Favorite Button */}
+                      <button
+                        onClick={() => handleFavoriteToggle(event.id)}
+                        disabled={isLoadingFavorites}
+                        className="
+                          absolute top-3 right-3 p-2 rounded-full 
+                          bg-white/90 hover:bg-white shadow-lg
+                          transition-all duration-200 transform hover:scale-110
+                          border-2 border-black z-10
+                          disabled:opacity-50 disabled:cursor-not-allowed
+                        "
+                        aria-label={favoriteEvents.includes(event.id) ? "Remove from favorites" : "Add to favorites"}
+                      >
+                        <Heart 
+                          className={`w-5 h-5 transition-colors duration-200 ${
+                            favoriteEvents.includes(event.id) 
+                              ? 'text-red-500 fill-red-500' 
+                              : 'text-gray-600 hover:text-red-500'
+                          } ${isLoadingFavorites ? 'animate-pulse' : ''}`}
+                        />
+                      </button>
+                      
                       {/* Category Badge */}
                       <Badge className="
                         absolute top-3 left-3
@@ -489,20 +744,6 @@ const Index = () => {
                       ">
                         {event.category}
                       </Badge>
-                      {/* Price Badge */}
-                      {event.price && (
-                        <Badge className="
-                          absolute top-3 right-3
-                          bg-retro-warm-yellow text-black
-                          font-bold text-xs px-3 py-1
-                          border-3 border-black
-                          rotate-3 shadow-lg
-                          pointer-events-none
-                          transform hover:rotate-0 transition-transform duration-200
-                        ">
-                          {event.price.trim().toLowerCase() === 'free' ? 'FREE' : event.price}
-                        </Badge>
-                      )}
                     </div>
 
                     {/* Card Content */}
@@ -555,22 +796,39 @@ const Index = () => {
                         </div>
                       </div>
                       
-                      {/* Tags */}
-                      <div className="flex flex-wrap gap-2 pt-2">
-                        {event.tags?.slice(0, 3).map((tag, index) => (
-                          <Badge
-                            key={index}
-                            className="
-                              text-xs border-2 border-retro-burnt-orange text-black
-                              bg-retro-warm-yellow font-bold px-3 py-1 rounded-none
-                              pointer-events-none shadow-sm
-                              transform hover:scale-105 transition-all duration-200
-                              hover:bg-retro-mustard
-                            "
-                          >
-                            #{tag}
-                          </Badge>
-                        ))}
+                      {/* Tags and Share Button */}
+                      <div className="flex justify-between items-end pt-2">
+                        <div className="flex flex-wrap gap-2">
+                          {event.tags?.slice(0, 3).map((tag, index) => (
+                            <Badge
+                              key={index}
+                              className="
+                                text-xs border-2 border-retro-burnt-orange text-black
+                                bg-retro-warm-yellow font-bold px-3 py-1 rounded-none
+                                pointer-events-none shadow-sm
+                                transform hover:scale-105 transition-all duration-200
+                                hover:bg-retro-mustard
+                              "
+                            >
+                              #{tag}
+                            </Badge>
+                          ))}
+                        </div>
+                        
+                        {/* Share Button */}
+                        <button
+                          onClick={() => handleShareEvent(event)}
+                          className="
+                            p-2 rounded-full 
+                            bg-retro-bright-blue hover:bg-retro-deep-teal
+                            border-2 border-black shadow-lg
+                            transition-all duration-200 transform hover:scale-110 hover:-rotate-3
+                            group
+                          "
+                          aria-label={`Share ${event.title}`}
+                        >
+                          <Share2 className="w-4 h-4 text-white group-hover:text-retro-cream transition-colors duration-200" />
+                        </button>
                       </div>
                     </CardContent>
                   </Card>

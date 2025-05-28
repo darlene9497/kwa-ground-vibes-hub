@@ -107,6 +107,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_favorites: {
+        Row: {
+          user_id: string
+          event_id: number
+          created_at: string | null
+        }
+        Insert: {
+          user_id: string
+          event_id: number
+          created_at?: string | null
+        }
+        Update: {
+          user_id?: string
+          event_id?: number
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_favorites_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_favorites_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
