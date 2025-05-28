@@ -788,7 +788,7 @@ const Index = () => {
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-2 text-black text-sm font-bold">
                             <MapPin className="w-4 h-4 text-retro-red-orange" />
-                            <span className="truncate max-w-40">{event.location}</span>
+                            <span>{event.location}</span>
                           </div>
                           <div className="flex items-center gap-2 text-black text-sm font-bold">
                             <DollarSign className="w-4 h-4 text-retro-mustard" />
