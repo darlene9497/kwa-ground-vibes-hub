@@ -50,6 +50,7 @@ const Index = () => {
   const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [searchPerformed, setSearchPerformed] = useState(false);
+  const [appliedSearchQuery, setAppliedSearchQuery] = useState('');
   const { toast } = useToast();
 
   const displayName =
@@ -227,12 +228,12 @@ const Index = () => {
     const matchesFilter =
       activeFilters.includes('All Events') || activeFilters.includes(event.category);
     const matchesSearch =
-      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.location.toLowerCase().includes(searchQuery.toLowerCase());
-
+      event.title.toLowerCase().includes(appliedSearchQuery.toLowerCase()) ||
+      event.description.toLowerCase().includes(appliedSearchQuery.toLowerCase()) ||
+      event.location.toLowerCase().includes(appliedSearchQuery.toLowerCase());
+  
     return matchesFilter && matchesSearch;
-  });
+  });  
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -538,8 +539,7 @@ const Index = () => {
               <form
                 onSubmit={e => {
                   e.preventDefault();
-                  setSearchPerformed(true);
-                  setSearchQuery(searchQuery.trim());
+                  setAppliedSearchQuery(searchQuery.trim());
                 }}
                 className="relative"
               >
@@ -658,17 +658,31 @@ const Index = () => {
             <span className="text-sm text-retro-deep-teal">{filteredEvents.length} events</span>
           </div>
 
-          {filteredEvents.length === 0 && searchPerformed && activeFilters.includes('All Events') ? (
-            <Card className="text-center py-8 bg-retro-cream border-2 border-retro-mustard">
-              <CardContent>
-                <div className="text-retro-deep-teal">
-                  <Sparkles className="w-12 h-12 mx-auto mb-3 text-retro-bright-blue" />
-                  <h3 className="font-medium mb-2 text-retro-navy">No events found</h3>
-                  <p className="text-retro-cool-teal">Try adjusting your filters or search terms</p>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
+          {filteredEvents.length === 0 ? (
+            searchPerformed ? (
+              <Card className="text-center py-8 bg-retro-cream border-2 border-retro-mustard">
+                <CardContent>
+                  <div className="text-retro-deep-teal">
+                    <Sparkles className="w-12 h-12 mx-auto mb-3 text-retro-bright-blue" />
+                    <h3 className="font-medium mb-2 text-retro-navy">No events found</h3>
+                    <p className="text-retro-cool-teal">
+                      No events match your search. Try a different keyword.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="text-center py-8 bg-retro-cream border-2 border-retro-mustard">
+                <CardContent>
+                  <div className="text-retro-deep-teal">
+                    <Sparkles className="w-12 h-12 mx-auto mb-3 text-retro-bright-blue" />
+                    <h3 className="font-medium mb-2 text-retro-navy">No events found</h3>
+                    <p className="text-retro-cool-teal">Try adjusting your filters or search terms.</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+            ) : (
             <div className="px-4">
                 <div className="grid gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2">
                 {filteredEvents.map((event) => (
