@@ -180,35 +180,59 @@ const Index = () => {
   }, [favoriteEvents, events]);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (
         dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        !dropdownRef.current.contains(event.target as Node) &&
+        profileMenuOpen
       ) {
-        setProfileMenuOpen(false);
+        // Don't close if clicking on logout button
+        const target = event.target as HTMLElement;
+        if (!target.closest('button[aria-label="Logout"]') && 
+            !target.textContent?.includes('Logout')) {
+          setProfileMenuOpen(false);
+        }
       }
     };
-
+  
     if (profileMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
     } else {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     }
-
+  
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [profileMenuOpen]);
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Logout error:', error.message);
-    } else {
+    try {
+      console.log('🔓 Logging out...');
+      
+      // Close any open modals/dropdowns first
+      setProfileMenuOpen(false);
+      
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('❌ Logout error:', error.message);
+      }
+      
+      // Clear all local state
       setUser(null);
       setFavoriteEvents([]);
       setSavedEvents([]);
-      window.location.href = '/auth';
+      setUserEvents([]);
+
+      window.location.replace('/auth');
+      
+    } catch (error) {
+      console.error('❌ Unexpected logout error:', error);
+      window.location.replace('/auth');
     }
   };
 
@@ -410,92 +434,108 @@ const Index = () => {
               draggable={false}
             />
             <div className="flex items-center">
-              {user ? (
-                <div
-                  ref={dropdownRef}
-                  className="relative flex items-center gap-2"
+            {user ? (
+              <div
+                ref={dropdownRef}
+                className="relative flex items-center gap-2"
+              >
+                <span className="text-sm text-retro-cream hidden sm:inline">
+                  {displayName}
+                </span>
+                <button
+                  onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+                  className="p-2 rounded-full bg-retro-navy hover:bg-retro-navy/20 transition-colors"
+                  aria-label="Profile menu"
                 >
-                  <span className="text-sm text-retro-cream hidden sm:inline">
-                    {displayName}
-                  </span>
-                  <button
-                      onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                      className="p-2 rounded-full bg-retro-navy hover:bg-retro-navy/20 transition-colors"
-                      aria-label="Profile menu"
-                    >
-                      <User className="w-6 h-6 text-retro-warm-yellow sm:text-retro-warm-yellow text-retro-navy" />
-                    </button>
+                  <User className="w-6 h-6 text-retro-warm-yellow sm:text-retro-warm-yellow text-retro-navy" />
+                </button>
+                {profileMenuOpen && (
+  <div className="absolute right-0 top-full mt-2 w-80 bg-retro-navy shadow-lg rounded-lg border-2 border-retro-warm-yellow p-4 z-[99999] max-h-96 overflow-auto">
+    <div className="space-y-4">
+      {/* Events Section */}
+      <div>
+        <h3 className="text-sm font-semibold mb-2 text-retro-cream">Your Events</h3>
+        {userEvents && userEvents.length > 0 ? (
+          <ul className="space-y-2 text-sm">
+            {userEvents.map((event: Event) => (
+              <li key={event.id} className="border-b border-retro-cool-teal pb-2">
+                <p className="font-medium text-retro-warm-yellow">{event.title}</p>
+                <p className="text-xs text-retro-cream">Status: {event.status}</p>
+                <p className="text-xs text-retro-cream">Date: {formatDate(event.date)}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-retro-cream">
+            You haven't posted any events yet.
+          </p>
+        )}
+      </div>
 
-                    {profileMenuOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-80 bg-retro-navy shadow-lg rounded-lg border-2 border-retro-warm-yellow p-4 z-[100] max-h-96 overflow-auto">
-                      <div className="space-y-4">
-                        {/* Events Section */}
-                        <div>
-                          <h3 className="text-sm font-semibold mb-2 text-retro-cream">Your Events</h3>
-                          {userEvents && userEvents.length > 0 ? (
-                            <ul className="space-y-2 text-sm">
-                              {userEvents.map((event: Event) => (
-                                <li key={event.id} className="border-b border-retro-cool-teal pb-2">
-                                  <p className="font-medium text-retro-warm-yellow">{event.title}</p>
-                                  <p className="text-xs text-retro-cream">Status: {event.status}</p>
-                                  <p className="text-xs text-retro-cream">Date: {formatDate(event.date)}</p>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="text-sm text-retro-cream">
-                              You haven't posted any events yet.
-                            </p>
-                          )}
-                        </div>
+      {/* Saved Events Section */}
+      <div>
+        <h3 className="text-sm font-semibold mb-2 text-retro-cream flex items-center gap-2">
+          <Heart className="w-4 h-4 text-red-400" />
+          Saved Events ({savedEvents.length})
+        </h3>
+        {savedEvents.length > 0 ? (
+          <ul className="space-y-2 text-sm max-h-32 overflow-y-auto">
+            {savedEvents.map((event: Event) => (
+              <li key={event.id} className="border-b border-retro-cool-teal pb-2">
+                <p className="font-medium text-retro-warm-yellow">{event.title}</p>
+                <p className="text-xs text-retro-cream">Date: {formatDate(event.date)}</p>
+                <p className="text-xs text-retro-cream">Location: {event.location}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-retro-cream">
+            No saved events yet. Click the heart icon on events to save them!
+          </p>
+        )}
+      </div>
+    </div>
 
-                        {/* Saved Events Section */}
-                        <div>
-                          <h3 className="text-sm font-semibold mb-2 text-retro-cream flex items-center gap-2">
-                            <Heart className="w-4 h-4 text-red-400" />
-                            Saved Events ({savedEvents.length})
-                          </h3>
-                          {savedEvents.length > 0 ? (
-                            <ul className="space-y-2 text-sm max-h-32 overflow-y-auto">
-                              {savedEvents.map((event: Event) => (
-                                <li key={event.id} className="border-b border-retro-cool-teal pb-2">
-                                  <p className="font-medium text-retro-warm-yellow">{event.title}</p>
-                                  <p className="text-xs text-retro-cream">Date: {formatDate(event.date)}</p>
-                                  <p className="text-xs text-retro-cream">Location: {event.location}</p>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="text-sm text-retro-cream">
-                              No saved events yet. Click the heart icon on events to save them!
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      <hr className="my-3 border-retro-cool-teal" />
-                      <Button
-                        variant="outline"
-                        className="w-full text-sm border-2 border-retro-warm-yellow text-retro-warm-yellow hover:bg-retro-warm-yellow hover:text-retro-navy transition-colors"
-                        onClick={handleLogout}
-                      >
-                        Logout
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2">
-                  <Button
-                    variant="default"
-                    className="text-xs bg-retro-burnt-orange hover:bg-retro-deep-red text-retro-cream border-2 border-retro-warm-yellow"
-                    onClick={() => (window.location.href = "/auth")}
-                  >
-                    Login
-                  </Button>
-                  <p className="text-xs text-retro-navy italic">Login to share an event</p>
-                </div>
-              )}
+    <hr className="my-3 border-retro-cool-teal" />
+    
+    {/* FIXED LOGOUT BUTTON */}
+    <Button
+      variant="outline"
+      className="w-full text-sm border-2 border-retro-warm-yellow text-retro-warm-yellow hover:bg-retro-warm-yellow hover:text-retro-navy transition-colors"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setProfileMenuOpen(false); // Close dropdown first
+        setTimeout(() => {
+          handleLogout();
+        }, 100); // Small delay to ensure dropdown closes
+      }}
+      onTouchEnd={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setProfileMenuOpen(false);
+        setTimeout(() => {
+          handleLogout();
+        }, 100);
+      }}
+    >
+      Logout
+    </Button>
+  </div>
+)}                
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <Button
+                  variant="default"
+                  className="text-xs bg-retro-burnt-orange hover:bg-retro-deep-red text-retro-cream border-2 border-retro-warm-yellow"
+                  onClick={() => (window.location.href = "/auth")}
+                >
+                  Login
+                </Button>
+                <p className="text-xs text-retro-navy italic">Login to share an event</p>
+              </div>
+            )}
             </div>
           </div>
           <div className="w-full flex justify-center">
@@ -705,7 +745,7 @@ const Index = () => {
                     {/* Card Image or Logo */}
                     <div className="relative h-60 overflow-hidden bg-retro-mustard flex items-center justify-center border-b-4 border-black">
                       {event.image ? (
-                        <img src={event.image} alt={event.title} className="object-cover w-full h-full" />
+                        <img src={event.image} alt={event.title} className="object-cover w-full h-full pointer-events-none" />
                       ) : (
                         <img
                           src={logo}
@@ -840,7 +880,6 @@ const Index = () => {
                 ))}
               </div>
             </div>
-            
           )}
         </div>
 
