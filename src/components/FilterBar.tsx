@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/lib/supabaseClient';
 
 interface FilterBarProps {
@@ -30,21 +29,25 @@ const FilterBar = ({ activeFilters, onFilterToggle }: FilterBarProps) => {
         .from('categories')
         .select('id, name')
         .order('name', { ascending: true });
-
+  
       if (error) {
         console.error('Error fetching categories:', error);
       } else {
-        setCategories(data);
+        const categoriesWithNumberIds = (data || []).map(category => ({
+          ...category,
+          id: Number(category.id)
+        }));
+        setCategories(categoriesWithNumberIds);
       }
     };
-
+  
     fetchCategories();
-  }, [supabase]);
+  }, []);
 
   return (
     <div className="
       bg-retro-cool-teal
-      py-2 sticky top-0 z-50 
+      py-2 sticky top-0 z-10 
       border-b-4 border-black
       relative
     ">

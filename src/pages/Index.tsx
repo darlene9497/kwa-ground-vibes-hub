@@ -58,42 +58,94 @@ const Index = () => {
     user?.user_metadata?.name ||
     user?.email;
 
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (user?.id) {
-          setUser(user);
-
-          // Fetch profile
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('name')
-            .eq('id', user.id)
-            .single();
-
-          if (profileError) {
-            console.error('❌ Error fetching profile:', profileError);
-          } else if (profileData) {
-            setUser((prevUser: User | null) => ({
-              ...prevUser!,
-              profile: profileData,
-            }));
+    useEffect(() => {
+      const fetchUserProfile = async () => {
+        try {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+    
+          if (user?.id) {
+            setUser(user);
+    
+            // Fetch profile
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('name')
+              .eq('id', user.id)
+              .single();
+    
+            if (profileError) {
+              console.error('❌ Error fetching profile:', profileError);
+            } else if (profileData) {
+              setUser((prevUser: User | null) => ({
+                ...prevUser!,
+                profile: profileData,
+              }));
+            }
+    
+            // Fetch user events
+            const { data: myEvents, error: eventsError } = await supabase
+              .from('events')
+              .select('*')
+              .eq('user_id', user.id);
+    
+            if (eventsError) {
+              console.error('❌ Error fetching user events:', eventsError);
+            } else {
+              const validatedEvents = (myEvents || []).map(event => ({
+                ...event,
+                id: event.id,
+                title: event.title || '',
+                description: event.description || '',
+                date: event.date || '',
+                time: event.time || '',
+                location: event.location || '',
+                category: event.category || '',
+                status: event.status || '',
+                tags: event.tags || [],
+                user_id: event.user_id || '',
+                created_at: event.created_at || ''
+              })) as unknown as Event[];
+              setUserEvents(validatedEvents);
+            }
+    
+            // Fetch user's favorite events
+            const { data: favorites, error: favError } = await supabase
+              .from('user_favorites')
+              .select('event_id')
+              .eq('user_id', user.id);
+    
+            if (favError) {
+              console.error('Error details:', {
+                message: favError.message,
+                details: favError.details,
+                hint: favError.hint,
+                code: favError.code
+              });
+            } else {
+              const favoriteIds = favorites?.map(fav => fav.event_id).filter((id): id is number => !!id).map(id => id.toString()) || [];
+              setFavoriteEvents(favoriteIds);
+            }
+          } else {
+            console.log('👤 No user authenticated');
           }
-
-          // Fetch user events
-          const { data: myEvents, error: eventsError } = await supabase
+        } catch (error) {
+          console.error('❌ Error in fetchUserProfile:', error);
+        }
+      };
+    
+      const fetchApprovedEvents = async () => {
+        try {
+          const { data, error } = await supabase
             .from('events')
             .select('*')
-            .eq('user_id', user.id);
-
-          if (eventsError) {
-            console.error('❌ Error fetching user events:', eventsError);
+            .eq('status', 'approved');
+    
+          if (error) {
+            console.error('❌ Error fetching events:', error);
           } else {
-            const validatedEvents = (myEvents || []).map(event => ({
+            const validatedEvents = data.map(event => ({
               ...event,
               id: event.id,
               title: event.title || '',
@@ -102,73 +154,19 @@ const Index = () => {
               time: event.time || '',
               location: event.location || '',
               category: event.category || '',
-              status: event.status || '',
-              tags: event.tags || [],
-              user_id: event.user_id || '',
-              created_at: event.created_at || ''
-            })) as unknown as Event[];
-            setUserEvents(validatedEvents);
+              tags: event.tags || []
+            })) as Event[];
+            console.log('📅 Events loaded:', validatedEvents.length);
+            setEvents(validatedEvents);
           }
-
-          // Fetch user's favorite events
-          const { data: favorites, error: favError } = await supabase
-            .from('user_favorites')
-            .select('event_id')
-            .eq('user_id', user.id);
-
-          if (favError) {
-            console.error('Error details:', {
-              message: favError.message,
-              details: favError.details,
-              hint: favError.hint,
-              code: favError.code
-            });
-          } else {
-            console.log('✅ Favorites fetched successfully:', favorites);
-            const favoriteIds = favorites?.map(fav => fav.event_id).filter((id): id is string => !!id) || [];
-            console.log('📝 Final favorite IDs:', favoriteIds);
-            setFavoriteEvents(favoriteIds);
-          }
-        } else {
-          console.log('👤 No user authenticated');
+        } catch (error) {
+          console.error('❌ Error in fetchApprovedEvents:', error);
         }
-      } catch (error) {
-        console.error('❌ Error in fetchUserProfile:', error);
-      }
-    };
-
-    const fetchApprovedEvents = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('events')
-          .select('*')
-          .eq('status', 'approved');
-
-        if (error) {
-          console.error('❌ Error fetching events:', error);
-        } else {
-          const validatedEvents = data.map(event => ({
-            ...event,
-            id: event.id,
-            title: event.title || '',
-            description: event.description || '',
-            date: event.date || '',
-            time: event.time || '',
-            location: event.location || '',
-            category: event.category || '',
-            tags: event.tags || []
-          })) as Event[];
-          console.log('📅 Events loaded:', validatedEvents.length);
-          setEvents(validatedEvents);
-        }
-      } catch (error) {
-        console.error('❌ Error in fetchApprovedEvents:', error);
-      }
-    };
-
-    fetchUserProfile();
-    fetchApprovedEvents();
-  }, []);
+      };
+    
+      fetchUserProfile();
+      fetchApprovedEvents();
+    }, []);
 
   // Fetch saved events when favorites change
   useEffect(() => {    
@@ -269,9 +267,9 @@ const Index = () => {
       window.location.href = '/auth';
       return;
     }
-
+  
     setIsLoadingFavorites(true);
-
+  
     const isFavorited = favoriteEvents.includes(eventId);
     
     try {
@@ -281,9 +279,9 @@ const Index = () => {
           .delete()
           .match({ 
             user_id: user.id, 
-            event_id: eventId 
+            event_id: Number(eventId) // Convert to number
           });
-
+  
         if (error) {
           console.error('Error details:', {
             message: error.message,
@@ -302,10 +300,10 @@ const Index = () => {
           .from('user_favorites')
           .insert({ 
             user_id: user.id, 
-            event_id: eventId 
+            event_id: Number(eventId)
           })
           .select();
-
+  
         if (error) {
           console.error('Error details:', {
             message: error.message,
@@ -428,9 +426,9 @@ const Index = () => {
                     </button>
 
                     {profileMenuOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-80 bg-retro-navy shadow-lg rounded-lg border-2 border-retro-warm-yellow p-4 z-50 max-h-96 overflow-auto">
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-retro-navy shadow-lg rounded-lg border-2 border-retro-warm-yellow p-4 z-[100] max-h-96 overflow-auto">
                       <div className="space-y-4">
-                        {/* Your Events Section */}
+                        {/* Events Section */}
                         <div>
                           <h3 className="text-sm font-semibold mb-2 text-retro-cream">Your Events</h3>
                           {userEvents && userEvents.length > 0 ? (
@@ -660,21 +658,7 @@ const Index = () => {
             <span className="text-sm text-retro-deep-teal">{filteredEvents.length} events</span>
           </div>
 
-          {filteredEvents.length === 0 && searchPerformed && (
-            <Card className="text-center py-8 bg-retro-cream border-2 border-retro-mustard">
-              <CardContent>
-                <div className="text-retro-deep-teal">
-                  <Sparkles className="w-12 h-12 mx-auto mb-3 text-retro-bright-blue" />
-                  <h3 className="font-medium mb-2 text-retro-navy">No events found</h3>
-                  <p className="text-retro-cool-teal">
-                    No events match your search. Try a different keyword.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {filteredEvents.length === 0 ? (
+          {filteredEvents.length === 0 && searchPerformed && activeFilters.includes('All Events') ? (
             <Card className="text-center py-8 bg-retro-cream border-2 border-retro-mustard">
               <CardContent>
                 <div className="text-retro-deep-teal">
@@ -722,7 +706,7 @@ const Index = () => {
                         onClick={() => handleFavoriteToggle(event.id)}
                         disabled={isLoadingFavorites}
                         className="
-                          absolute top-3 right-3 p-2 rounded-full 
+                          absolute z-0 top-3 right-3 p-2 rounded-full 
                           bg-white/90 hover:bg-white shadow-lg
                           transition-all duration-200 transform hover:scale-110
                           border-2 border-black z-10
@@ -848,9 +832,8 @@ const Index = () => {
 
         <div className="h-20"></div>
       </main>
-
       {/* Show only if logged in */}
-      {user && <EventSubmissionModal />}
+      {user && <EventSubmissionModal />} 
     </div>
   );
 };

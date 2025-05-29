@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
+import bgImage from '../../assets/auth-bg.png';
 
 export default function AuthForm() {
   const [email, setEmail] = useState('');
@@ -96,7 +97,7 @@ export default function AuthForm() {
     <div
       className="min-h-screen bg-cover bg-center flex items-center justify-start px-4 md:px-4"
       style={{
-        backgroundImage: `url('../../assets/auth-bg.png')`,
+        backgroundImage: `url(${bgImage})`,
       }}
     >
       {/* Form Wrapper */}
