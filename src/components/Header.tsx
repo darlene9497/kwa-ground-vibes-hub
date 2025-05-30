@@ -1,4 +1,5 @@
 import React from 'react';
+import logo from '../../assets/kwa-ground-logo.png'
 import { Search, User, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -42,7 +43,7 @@ const Header: React.FC<HeaderProps> = ({
       <div className="flex flex-col sm:hidden w-full">
         <div className="flex items-center justify-between w-full mb-2">
           <img
-            src="./assets/kwa-ground-logo.png"
+            src={logo}
             alt="KwaGround Logo"
             className="h-24 w-auto"
             draggable={false}
@@ -104,7 +105,7 @@ const Header: React.FC<HeaderProps> = ({
       <div className="hidden sm:flex items-center justify-between h-24 w-full relative">
         <div className="flex-shrink-0">
           <img
-            src="/assets/kwa-ground-logo.png"
+            src={logo}
             alt="KwaGround Logo"
             className="h-24 w-auto"
             draggable={false}
